@@ -60,12 +60,17 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title('Calibration App')
-        self.geometry('600x800')
+        self.geometry('1200x900')
 
         # Add widgets
         self.TopMenu = TopMenu(self)
-        self.DropDownMenu = DropDownMenu(self)
+        self.MiddleMenuTop = MiddleMenuTop(self)
+        self.MiddleMenuBottom = MiddleMenuBottom(self)
+        self.RightMenuTop = RightMenuTop(self)
+        self.RightMenuMid = RightMenuMid(self)
+        # self.DropDownMenu = DropDownMenu(self)
 
+        self.iconbitmap('calibration-icon-24.ico')
         # Run the window
         self.mainloop()
 
@@ -76,7 +81,7 @@ class TopMenu(ctk.CTkFrame):
         self.button_rob = None
         self.button_cam = None
 
-        self.place(relx=0.2, rely=0.05, relwidth=0.55, relheight=0.08)
+        self.place(relx=0.02, rely=0.02, relwidth=0.2, relheight=0.9)
 
         self.create_widgets()
 
@@ -84,53 +89,43 @@ class TopMenu(ctk.CTkFrame):
         self.button_rob = ctk.CTkButton(master=self,
                                         text='Connect to Robot',
                                         command=connect_to_robot)
-        self.button_rob.pack(pady=10, padx=10, side='left')
+        self.button_rob.pack(pady=10, padx=10, side='top')
 
         self.button_cam = ctk.CTkButton(master=self,
                                         text='Connect to Camera',
                                         command=connect_to_cam)
-        self.button_cam.pack(pady=10, padx=10, side='right')
+        self.button_cam.pack(pady=10, padx=10, side='top')
 
 
-class DropDownMenu(ctk.CTkFrame):
+class MiddleMenuTop(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.warmup_button = None
-        self.intrinsics_button = None
-        self.convert_to_halcon_intr = None
+        self.place(relx=0.585, rely=0.02, relwidth=0.4, relheight=0.45)
 
-        self.place(relx=0.1, rely=0.15, relwidth=0.8, relheight=0.08)
 
-        self.create_widgets()
+class MiddleMenuBottom(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.585, rely=0.473, relwidth=0.4, relheight=0.45)
 
-    def create_widgets(self):
-        self.warmup_button = ctk.CTkButton(master=self,
-                                           text='Warm up',
-                                           command=warmup)
-        self.warmup_button.pack(pady=10, padx=10, side='left')
 
-        CTkToolTip(self.warmup_button, message='To warm up the camera is essential\n'
-                                               'if the camera has not been used in a while')
+class RightMenuTop(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.02, relwidth=0.35, relheight=0.3)
 
-        self.intrinsics_button = ctk.CTkButton(master=self,
-                                               text="Intrinsics Parameters",
-                                               command=get_intr_param)
-        self.intrinsics_button.pack(pady=10, padx=10, side='left')
 
-        CTkToolTip(self.intrinsics_button, message='Get intrinsics parameters\nof the zivid camera')
+class RightMenuMid(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.325, relwidth=0.35, relheight=0.3)
 
-        self.convert_to_halcon_intr = ctk.CTkButton(master=self,
-                                                    text='Convert to Halcon',
-                                                    command=convert_to_halcon)
-        self.convert_to_halcon_intr.pack(pady=10, padx=10, side='left')
 
-        CTkToolTip(self.convert_to_halcon_intr, message='Convert Zivid Intrinsics parameters\n'
-                                                        'to be suitable for Halcon - check documentation')
 
 
 robot_fanuc = None
 
-ctk.set_appearance_mode('dark')
+ctk.set_appearance_mode('')
 ctk.set_default_color_theme('green')
 # Running the app
 App()
