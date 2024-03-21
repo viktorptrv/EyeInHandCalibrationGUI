@@ -27,18 +27,6 @@ def get_curposv2(self, uframe, tframe) -> list[float]:
     return vals
 
 
-def connect_to_cam():
-    pass
-    # global camera
-    #
-    # try:
-    #     app = zivid.Application()
-    #     camera = app.connect_camera()
-    # except Exception:
-    #     messagebox.showinfo('Error', 'You could not connect to the camera!\n'
-    #                                  'Check your network!')
-    # return camera
-
 def warmup():
     pass
 
@@ -64,7 +52,7 @@ class App(ctk.CTk):
         super().__init__()
         self.title('Calibration App')
         self.geometry('1200x800')
-        self.maxsize(1200,800)
+        self.maxsize(1200, 800)
         self.minsize(1200, 800)
 
         # Add widgets
@@ -90,22 +78,11 @@ class TopMenu(ctk.CTkFrame):
         self.button_calibration_manual = None
 
         self.TopMenuFrameOne = RobotFrame(self)
+        self.CalibrationFrame = CalibrationFrame(self)
 
         self.place(relx=0.02, rely=0.02, relwidth=0.2, relheight=0.9)
 
-        # self.create_widgets()
 
-    # def create_widgets(self):
-    #     self.button_rob = ctk.CTkButton(master=self,
-    #                                     text='Connect to Robot',
-    #                                     command=connect_to_robot)
-    #     self.button_rob.pack(pady=35, padx=10, side='top')
-    #
-    #     self.button_cam = ctk.CTkButton(master=self,
-    #                                     text='Connect to Camera',
-    #                                     command=connect_to_cam)
-    #     self.button_cam.pack(pady=35, padx=10, side='top')
-    #
     #     self.button_calibration_auto = ctk.CTkButton(master=self,
     #                                                  text='Auto Calibration',
     #                                                  command=auto_calibration)
@@ -128,6 +105,7 @@ class RobotFrame(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.connected_robot = False
+        self.connected_camera = False
 
         self.robot_fanuc = Robot(
                                 robot_model="LHMROB011",
@@ -136,6 +114,10 @@ class RobotFrame(ctk.CTkFrame):
                                 ee_DO_type="RDO",
                                 ee_DO_num=7)
 
+        self.combobox = None
+        self.values = ['Choose an Option', 'Get Current Pose', 'Get Current JPose']
+        self.box_variable = tk.StringVar(value=self.values[0])
+        self.camera = None
         self.button_rob = None
         self.button_cam = None
         self.button_pose = None
@@ -149,22 +131,57 @@ class RobotFrame(ctk.CTkFrame):
                                         command=self.init_robot)
         self.button_rob.pack(pady=20, padx=10, side='top')
 
+        self.combobox = ctk.CTkComboBox(master=self,
+                                        values=self.values,
+                                        variable=self.box_variable,
+                                        state='readonly')
+        self.combobox.pack(pady=10, padx=10, side='top')
+
+        self.button_cam = ctk.CTkButton(master=self,
+                                        text='Connect to Camera',
+                                        command=self.connect_to_cam)
+        self.button_cam.pack(pady=10, padx=10, side='top')
+
+    def connect_to_cam(self):
+        if not self.connected_camera:
+            try:
+                app = zivid.Application()
+                self.camera = app.connect_camera()
+                self.connected_camera = True
+            except Exception:
+                messagebox.showinfo('Error', 'You could not connect to the camera!\n'
+                                             'Check your network!')
+                self.connected_camera=False
+
+        else:
+            messagebox.showinfo('Connected!', 'Camera is connected!')
+
     def init_robot(self):
         try:
             self.robot_fanuc.connect()
             self.connected_robot = True
+
         except Exception:
             messagebox.showinfo('Error!', 'You could not connect to the robot!\n'
                                           'Check your network!')
             self.connected_robot = False
 
-        if self.connected_robot:
-            self.button_rob = ctk.CTkButton(master=self,
-                                            text='Get Curr Pose',
-                                            command=self.get_curr_pose)
-            self.button_rob.pack(pady=5, padx=10, side='top')
-        else:
-            print('Not connected')
+        finally:
+            if not self.connected_robot:
+                self.combobox.configure(state='readonly')
+                CTkToolTip(self.combobox, message='Since you are not connected to the robot\n'
+                                                  'the options are only readable')
+
+            else:
+                self.combobox.configure(state='normal')
+                self.combobox.bind('<<ComboboxSelected>>', self.selected_option)
+
+    def selected_option(self, event):
+        pass
+    #     # if == 'Get Curr Pose':
+    #     #     print('cur pose')
+    #     # else:
+    #     #     print('kor')
 
     def get_curr_pose(self):
         global cur_pose
@@ -173,6 +190,12 @@ class RobotFrame(ctk.CTkFrame):
         cur_pose = self.robot_fanuc.get_curpos(self.robot_fanuc, 8, 8)
 
         return cur_pose
+
+
+class CalibrationFrame(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.1, rely=0.35, relwidth=0.8, relheight=0.3)
 
 
 class RightMenuTop(ctk.CTkFrame):
@@ -224,10 +247,6 @@ class MiddleMenuMid(ctk.CTkFrame):
         super().__init__(parent)
         self.place(relx=0.23, rely=0.325, relwidth=0.35, relheight=0.3)
 
-
-
-connected_robot = None
-cur_pose = None
 
 ctk.set_appearance_mode('')
 ctk.set_default_color_theme('green')
