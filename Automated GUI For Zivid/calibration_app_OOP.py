@@ -27,6 +27,7 @@ def get_curposv2(self, uframe, tframe) -> list[float]:
     return vals
 
 
+
 def warmup():
     pass
 
@@ -39,32 +40,26 @@ def convert_to_halcon():
     pass
 
 
-def auto_calibration():
-    pass
-
-
-def manual_calibration():
-    pass
-
-
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title('Calibration App')
-        self.geometry('1200x800')
-        self.maxsize(1200, 800)
-        self.minsize(1200, 800)
+        self.calibration = None
+        self.geometry('1300x500')
+        self.maxsize(1300, 600)
+        self.minsize(1300, 600)
 
         # Add widgets
-        self.TopMenu = TopMenu(self)
         self.MiddleMenuTop = MiddleMenuTop(self)
+        self.TopMenu = TopMenu(self)
         self.MiddleMenuMid = MiddleMenuMid(self)
-        self.MiddleMenuBottom = MiddleMenuBottom(self)
+        # self.MiddleMenuBottom = MiddleMenuBottom(self)
         self.RightMenuTop = RightMenuTop(self)
-        self.RightMenuMid = RightMenuMid(self)
+        # self.RightMenuMid = RightMenuMid(self)
         # self.DropDownMenu = DropDownMenu(self)
 
         self.iconbitmap('calibration-icon-24.ico')
+
         # Run the window
         self.mainloop()
 
@@ -81,24 +76,6 @@ class TopMenu(ctk.CTkFrame):
         self.CalibrationFrame = CalibrationFrame(self)
 
         self.place(relx=0.02, rely=0.02, relwidth=0.2, relheight=0.9)
-
-
-    #     self.button_calibration_auto = ctk.CTkButton(master=self,
-    #                                                  text='Auto Calibration',
-    #                                                  command=auto_calibration)
-    #     self.button_calibration_auto.pack(pady=35, padx=10, side='top')
-    #     CTkToolTip(self.button_calibration_auto, message='For automated calibration you need\n'
-    #                                                      'at least 20 predefined positions of the robot\n'
-    #                                                      'and you must input them in the menu')
-    #
-    #     self.button_calibration_manual = ctk.CTkButton(master=self,
-    #                                                    text='Manual Calibration',
-    #                                                    command=manual_calibration)
-    #     self.button_calibration_manual.pack(pady=10, padx=10, side='top')
-    #     CTkToolTip(self.button_calibration_manual, message='For manual calibration you need\n'
-    #                                                        'at least 20 positions of the robot.\n'
-    #                                                        'Change the position of the robot and press'
-    #                                                        'Get Current Position')
 
 
 class RobotFrame(ctk.CTkFrame):
@@ -121,7 +98,7 @@ class RobotFrame(ctk.CTkFrame):
         self.button_rob = None
         self.button_cam = None
         self.button_pose = None
-        self.place(relx=0.1, rely=0.03, relwidth=0.8, relheight=0.3)
+        self.place(relx=0.1, rely=0.03, relwidth=0.8, relheight=0.4)
 
         self.create_widgets()
 
@@ -195,22 +172,75 @@ class RobotFrame(ctk.CTkFrame):
 class CalibrationFrame(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.place(relx=0.1, rely=0.35, relwidth=0.8, relheight=0.3)
+        self.place(relx=0.1, rely=0.5, relwidth=0.8, relheight=0.4)
+        self.list = []
+        self.pose_entry = None
+        self.manual_calib = None
+        self.automated_calib = None
+
+        self.widgets()
+
+    def widgets(self):
+        self.automated_calib = ctk.CTkButton(master=self,
+                                             text='Auto Calibration',
+                                             command=self.auto_calibration)
+        self.automated_calib.pack(pady=35, padx=10, side='top')
+
+        self.automated_calib.bind('<Button-1>', self.auto_calibration)
+
+        CTkToolTip(self.automated_calib, message='For automated calibration you need\n'
+                                                 'at least 20 predefined positions of the robot\n'
+                                                 'and you must input them in the menu')
+
+        self.manual_calib = ctk.CTkButton(master=self,
+                                          text='Manual Calibration',
+                                          command=self.manual_calibration)
+        self.manual_calib.pack(pady=10, padx=10, side='top')
+        CTkToolTip(self.manual_calib, message='For manual calibration you need\n'
+                                              'at least 20 positions of the robot.\n'
+                                              'Change the position of the robot and press'
+                                              'Get Current Position')
+
+    def auto_calibration(self):
+        pass
+
+    def manual_calibration(self):
+        pass
+
+
+class MiddleMenuTop(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.02, relwidth=0.35, relheight=0.3)
+        self.entry_pose = None
+        self.label=None
+
+        self.activate_widget()
+
+    def activate_widget(self):
+        self.label = ctk.CTkLabel(master=self,
+                                  text='Automated Calibration Input')
+        self.label.pack(padx=10, pady=0.5, fill='both', expand=True)
+
+        self.entry_pose = ctk.CTkEntry(master=self)
+        self.entry_pose.pack(padx=5, pady=10, fill='both', expand=True)
+        if calibration:
+            self.entry_pose.configure(state='enabled')
+        print('ok')
+
+
+class MiddleMenuMid(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.325, relwidth=0.35, relheight=0.3)
 
 
 class RightMenuTop(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
-        self.place(relx=0.585, rely=0.02, relwidth=0.4, relheight=0.45)
-
-
-class RightMenuMid(ctk.CTkFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
         self.label = None
-        self.place(relx=0.585, rely=0.473, relwidth=0.4, relheight=0.45)
-
-        self.image = Image.open("pavel.jpg")
+        self.place(relx=0.585, rely=0.02, relwidth=0.4, relheight=0.906)
+        self.image = Image.open("dark_python.png")
         self.img_copy = self.image.copy()
 
         self.background_image = ImageTk.PhotoImage(self.image)
@@ -229,25 +259,9 @@ class RightMenuMid(ctk.CTkFrame):
         self.label.configure(image=self.background_image)
 
 
-# Used for calibration output
-class MiddleMenuBottom(ctk.CTkFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.place(relx=0.23, rely=0.65, relwidth=0.35, relheight=0.272)
+calibration = False
 
-
-class MiddleMenuTop(ctk.CTkFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.place(relx=0.23, rely=0.02, relwidth=0.35, relheight=0.3)
-
-
-class MiddleMenuMid(ctk.CTkFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.place(relx=0.23, rely=0.325, relwidth=0.35, relheight=0.3)
-
-
+cur_pose = None
 ctk.set_appearance_mode('')
 ctk.set_default_color_theme('green')
 # Running the app
