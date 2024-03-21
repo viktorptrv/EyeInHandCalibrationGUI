@@ -239,15 +239,23 @@ class RightMenuTop(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.label = None
+        self.frame_buttons = None
+        self.button_show_pic= None
+        self.button_show_depth = None
         self.place(relx=0.585, rely=0.02, relwidth=0.4, relheight=0.906)
         self.image = Image.open("dark_python.png")
         self.img_copy = self.image.copy()
 
         self.background_image = ImageTk.PhotoImage(self.image)
 
+        self.frame_buttons = ctk.CTkFrame(master=self)
+        self.frame_buttons.pack(pady=5, padx=10, fill='both', expand=True)
+
         self.label = tk.Label(self, image=self.background_image)
-        self.label.pack(padx=10, pady=10, fill='both', expand=True)
+        self.label.pack(padx=5, pady=8, fill='both', expand=True)
         self.label.bind('<Configure>', self._resize_image)
+
+        self.activate_widgets()
 
     def _resize_image(self, event):
         new_width = event.width
@@ -257,6 +265,23 @@ class RightMenuTop(ctk.CTkFrame):
 
         self.background_image = ImageTk.PhotoImage(self.image)
         self.label.configure(image=self.background_image)
+
+    def activate_widgets(self):
+        self.button_show_pic = ctk.CTkButton(master=self.frame_buttons,
+                                             text='Show Picture',
+                                             command=self.show_pic)
+        self.button_show_pic.pack(padx=60, pady=5, side='left')
+
+        self.button_show_depth = ctk.CTkButton(master=self.frame_buttons,
+                                               text='Show Depth map',
+                                               command=self.show_depth)
+        self.button_show_depth.pack(padx=60, pady=5, side='right')
+
+    def show_depth(self):
+        pass
+
+    def show_pic(self):
+        pass
 
 
 calibration = False
