@@ -76,6 +76,9 @@ class Menu(ctk.CTkFrame):
         self.manual_calib = None
         self.automated_calib = None
 
+        self.image = Image.open("dark_python.png")
+        self.background_image = ImageTk.PhotoImage(self.image)
+
         self.columnconfigure(index=0, weight=1)
         self.columnconfigure(index=1, weight=1)
         self.columnconfigure(index=2, weight=1)
@@ -95,7 +98,6 @@ class Menu(ctk.CTkFrame):
         self.rowconfigure(index=9, weight=1)
         self.rowconfigure(index=10, weight=1)
         self.rowconfigure(index=11, weight=1)
-        self.rowconfigure(index=12, weight=1)
 
         self.create_widgets()
 
@@ -135,8 +137,21 @@ class Menu(ctk.CTkFrame):
                                               'Get Current Position')
 
         self.entry_pose = ctk.CTkEntry(master=self)
-        self.entry_pose.grid(row=2, column=0, columnspan=6, rowspan=2, sticky='nswe')
+        self.entry_pose.grid(row=2, column=0, columnspan=6, rowspan=3, sticky='nswe')
 
+        self.button_show_pic = ctk.CTkButton(master=self,
+                                             text='Show Picture',
+                                             command=self.show_pic)
+        self.button_show_pic.grid(row=5, column=1, columnspan=3)
+
+        self.button_show_depth = ctk.CTkButton(master=self,
+                                               text='Show Depth map',
+                                               command=self.show_depth)
+        self.button_show_depth.grid(row=5, column=3, columnspan=3)
+
+        self.background_image = ImageTk.PhotoImage(self.image)
+        self.label = tk.Label(self, image=self.background_image)
+        self.label.grid(row=6, column=0, columnspan=6, rowspan=5, sticky='nswe')
 
     def connect_to_cam(self):
         if not self.connected_camera:
@@ -180,10 +195,27 @@ class Menu(ctk.CTkFrame):
     #     #     print('kor')
 
     def auto_calibration(self):
+        # calibrate_hand_eye(robot_joints=)
         pass
 
     def manual_calibration(self):
+        # manual_calibrate_hand_eye(robot=self.robot_fanuc)
         pass
+
+    def show_depth(self):
+        pass
+
+    def show_pic(self):
+        pass
+
+    def _resize_image(self, event):
+        new_width = event.width
+        new_height = event.height
+
+        self.image = self.image.resize((new_width, new_height))
+
+        self.background_image = ImageTk.PhotoImage(self.image)
+        self.label.configure(image=self.background_image)
 
     def get_curr_pose(self):
         global cur_pose
