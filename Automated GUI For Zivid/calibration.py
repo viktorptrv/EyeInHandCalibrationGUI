@@ -48,14 +48,18 @@ class Menu(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.pack(padx=10, pady=10)
+        self.pack(padx=10, pady=10, fill='both', expand=True)
 
         self.connected_robot = False
         self.connected_camera = False
         self.connect_cam_button = None
         self.button_rob = None
         self.camera = None
-
+        self.label = None
+        self.frame_buttons = None
+        self.button_show_pic = None
+        self.button_show_depth = None
+        self.entry_pose = None
         self.combobox = None
         self.values = ['Choose an Option', 'Get Current Pose', 'Get Current JPose']
         self.box_variable = tk.StringVar(value=self.values[0])
@@ -66,6 +70,11 @@ class Menu(ctk.CTkFrame):
             port=18735,
             ee_DO_type="RDO",
             ee_DO_num=7)
+
+        self.list = []
+        self.pose_entry = None
+        self.manual_calib = None
+        self.automated_calib = None
 
         self.columnconfigure(index=0, weight=1)
         self.columnconfigure(index=1, weight=1)
@@ -80,6 +89,13 @@ class Menu(ctk.CTkFrame):
         self.rowconfigure(index=3, weight=1)
         self.rowconfigure(index=4, weight=1)
         self.rowconfigure(index=5, weight=1)
+        self.rowconfigure(index=6, weight=1)
+        self.rowconfigure(index=7, weight=1)
+        self.rowconfigure(index=8, weight=1)
+        self.rowconfigure(index=9, weight=1)
+        self.rowconfigure(index=10, weight=1)
+        self.rowconfigure(index=11, weight=1)
+        self.rowconfigure(index=12, weight=1)
 
         self.create_widgets()
 
@@ -87,18 +103,40 @@ class Menu(ctk.CTkFrame):
         self.connect_cam_button = ctk.CTkButton(master=self,
                                                 text='Connect to Camera',
                                                 command=self.connect_to_cam)
-        self.connect_cam_button.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+        self.connect_cam_button.grid(row=0, column=0, columnspan=2)
 
         self.button_rob = ctk.CTkButton(master=self,
                                         text='Connect to Robot',
                                         command=self.init_robot)
-        self.button_rob.grid(row=0, column=3, columnspan=2, padx=10, pady=10)
+        self.button_rob.grid(row=0, column=3, columnspan=2)
 
         self.combobox = ctk.CTkComboBox(master=self,
                                         values=self.values,
                                         variable=self.box_variable,
                                         state='readonly')
         self.combobox.grid(row=0, column=5, padx=10, pady=10)
+
+        self.automated_calib = ctk.CTkButton(master=self,
+                                             text='Auto Calibration',
+                                             command=self.auto_calibration)
+        self.automated_calib.grid(row=1, column=1, columnspan=3)
+
+        CTkToolTip(self.automated_calib, message='For automated calibration you need\n'
+                                                 'at least 20 predefined positions of the robot\n'
+                                                 'and you must input them in the menu')
+
+        self.manual_calib = ctk.CTkButton(master=self,
+                                          text='Manual Calibration',
+                                          command=self.manual_calibration)
+        self.manual_calib.grid(row=1, column=3, columnspan=3)
+        CTkToolTip(self.manual_calib, message='For manual calibration you need\n'
+                                              'at least 20 positions of the robot.\n'
+                                              'Change the position of the robot and press'
+                                              'Get Current Position')
+
+        self.entry_pose = ctk.CTkEntry(master=self)
+        self.entry_pose.grid(row=2, column=0, columnspan=6, rowspan=2, sticky='nswe')
+
 
     def connect_to_cam(self):
         if not self.connected_camera:
@@ -141,6 +179,12 @@ class Menu(ctk.CTkFrame):
     #     # else:
     #     #     print('kor')
 
+    def auto_calibration(self):
+        pass
+
+    def manual_calibration(self):
+        pass
+
     def get_curr_pose(self):
         global cur_pose
 
@@ -149,6 +193,8 @@ class Menu(ctk.CTkFrame):
 
         return cur_pose
 
+
+cur_pose = None
 customtkinter.set_appearance_mode('dark')
 customtkinter.set_default_color_theme('dark-blue')
 
