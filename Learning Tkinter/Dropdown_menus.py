@@ -1,32 +1,258 @@
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk
+from tkinter import messagebox
+from CTkToolTip import *
+from fanucpy import Robot
+from PIL import Image, ImageTk
+# from warmup import warmup
+# from get_camera_intrinsics import _main
+# from hand_in_eye_calibration import calibrate_hand_eye
+# from manual_hand_eye_calibration import manual_calibrate_hand_eye
 
-window = tk.Tk()
-window.geometry('500x800')
 
-items = ('Ice', 'Water', 'Broccoli')
-# on startup the selected item will be the first element from the tuple
-food_string = tk.StringVar(value=items[0])
-menu = ttk.Combobox(master=window,
-                    textvariable=food_string)
-# Assigning values to the combobox:
-menu['values']=items
-menu.config(values=items)
-menu.pack()
+def get_curposv2(self, uframe, tframe) -> list[float]:
+    """Gets current cartesian position of tool center point.
 
-# events every time an option from the menu is selected, the event
-# will trigger and it will execute the function
-menu.bind('<<ComboboxSelected>>', lambda event: print(food_string.get()))
+    Returns:
+        list[float]: Current positions XYZWPR.
+    """
 
-# Spinbox
-spin = ttk.Spinbox(window,
-                   from_=3,
-                   to=20,
-                   increment=2,
-                   command=lambda : print('Pressed'))
-spin.bind('<<Increment>>', lambda event: print('up'))
-spin.bind('<<Decrement>>', lambda event: print('Down'))
-# spin['value']=(1, 2, 3, 4, 5)
-spin.pack()
+    cmd = f"curpos:{uframe}:{tframe}"
+    print(cmd)
+    _, msg = self.send_cmd(cmd)
+    print(f"msg : {msg}")
+    vals = [float(val.split("=")[1]) for val in msg.split(",")]
+    print(f"Vals : {vals}")
+    return vals
 
-window.mainloop()
+
+def warmup():
+    pass
+
+
+def get_intr_param():
+    pass
+
+
+def convert_to_halcon():
+    pass
+
+
+def auto_calibration():
+    pass
+
+
+def manual_calibration():
+    pass
+
+
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title('Calibration App')
+        self.geometry('1300x500')
+        self.maxsize(1300, 600)
+        self.minsize(1300, 600)
+
+        # Add widgets
+        self.TopMenu = TopMenu(self)
+        self.MiddleMenuTop = MiddleMenuTop(self)
+        self.MiddleMenuMid = MiddleMenuMid(self)
+        # self.MiddleMenuBottom = MiddleMenuBottom(self)
+        # self.RightMenuTop = RightMenuTop(self)
+        # self.RightMenuMid = RightMenuMid(self)
+        # self.DropDownMenu = DropDownMenu(self)
+
+        # self.iconbitmap('calibration-icon-24.ico')
+        # Run the window
+        self.mainloop()
+
+
+class TopMenu(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.button_rob = None
+        self.button_cam = None
+        self.button_calibration_auto = None
+        self.button_calibration_manual = None
+
+        self.TopMenuFrameOne = RobotFrame(self)
+
+        self.place(relx=0.02, rely=0.02, relwidth=0.2, relheight=0.9)
+
+
+class RobotFrame(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connected_robot = False
+        self.connected_camera = False
+
+        self.robot_fanuc = Robot(
+                                robot_model="LHMROB011",
+                                host="10.37.115.206",
+                                port=18735,
+                                ee_DO_type="RDO",
+                                ee_DO_num=7)
+
+        self.combobox = None
+        self.values = ['Choose an Option', 'Get Current Pose', 'Get Current JPose']
+        self.box_variable = tk.StringVar(value=self.values[0])
+        self.camera = None
+        self.button_rob = None
+        self.button_cam = None
+        self.button_pose = None
+        self.place(relx=0.1, rely=0.03, relwidth=0.8, relheight=0.4)
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.button_rob = ctk.CTkButton(master=self,
+                                        text='Connect to Robot',
+                                        command=self.init_robot)
+        self.button_rob.pack(pady=20, padx=10, side='top')
+
+        self.combobox = ctk.CTkComboBox(master=self,
+                                        values=self.values,
+                                        variable=self.box_variable,
+                                        state='readonly')
+        self.combobox.pack(pady=10, padx=10, side='top')
+
+        self.button_cam = ctk.CTkButton(master=self,
+                                        text='Connect to Camera',
+                                        command=self.connect_to_cam)
+        self.button_cam.pack(pady=10, padx=10, side='top')
+
+    def connect_to_cam(self):
+        if not self.connected_camera:
+            try:
+                app = zivid.Application()
+                self.camera = app.connect_camera()
+                self.connected_camera = True
+            except Exception:
+                messagebox.showinfo('Error', 'You could not connect to the camera!\n'
+                                             'Check your network!')
+                self.connected_camera=False
+
+        else:
+            messagebox.showinfo('Connected!', 'Camera is connected!')
+
+    def init_robot(self):
+        try:
+            self.robot_fanuc.connect()
+            self.connected_robot = True
+
+        except Exception:
+            messagebox.showinfo('Error!', 'You could not connect to the robot!\n'
+                                          'Check your network!')
+            self.connected_robot = False
+
+        finally:
+            if not self.connected_robot:
+                self.combobox.configure(state='readonly')
+                CTkToolTip(self.combobox, message='Since you are not connected to the robot\n'
+                                                  'the options are only readable')
+
+            else:
+                self.combobox.configure(state='normal')
+                self.combobox.bind('<<ComboboxSelected>>', self.selected_option)
+
+    def selected_option(self, event):
+        pass
+    #     # if == 'Get Curr Pose':
+    #     #     print('cur pose')
+    #     # else:
+    #     #     print('kor')
+
+    def get_curr_pose(self):
+        global cur_pose
+
+        self.robot_fanuc.get_curpos = get_curposv2
+        cur_pose = self.robot_fanuc.get_curpos(self.robot_fanuc, 8, 8)
+
+        return cur_pose
+
+
+class CalibrationFrame(ctk.CTkFrame):
+    def __init__(self, parent, middle_menu_top):
+        super().__init__(parent)
+        self.place(relx=0.1, rely=0.5, relwidth=0.8, relheight=0.4)
+        self.list = []
+        self.pose_entry = None
+        self.manual_calib = None
+        self.automated_calib = None
+        self.middle_menu_top = middle_menu_top  # Store instance of MiddleMenuTop
+
+        self.widgets()
+
+    def widgets(self):
+        self.automated_calib = ctk.CTkButton(master=self,
+                                             text='Auto Calibration',
+                                             command=self.auto_calibration)  # Change command
+        self.automated_calib.pack(pady=35, padx=10, side='top')
+        CTkToolTip(self.automated_calib, message='For automated calibration you need\n'
+                                                 'at least 20 predefined positions of the robot\n'
+                                                 'and you must input them in the menu')
+
+        self.manual_calib = ctk.CTkButton(master=self,
+                                          text='Manual Calibration',
+                                          command=self.manual_calibration)
+        self.manual_calib.pack(pady=10, padx=10, side='top')
+        CTkToolTip(self.manual_calib, message='For manual calibration you need\n'
+                                              'at least 20 positions of the robot.\n'
+                                              'Change the position of the robot and press'
+                                              'Get Current Position')
+
+    def auto_calibration(self):
+        self.middle_menu_top.activate_widget()  # Call activate_widget method of MiddleMenuTop
+
+    def manual_calibration(self):
+        pass
+
+
+class RightMenuTop(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.label = None
+        self.place(relx=0.585, rely=0.02, relwidth=0.4, relheight=0.906)
+        self.image = Image.open("dark_python.png")
+        self.img_copy = self.image.copy()
+
+        self.background_image = ImageTk.PhotoImage(self.image)
+
+        self.label = tk.Label(self, image=self.background_image)
+        self.label.pack(padx=10, pady=10, fill='both', expand=True)
+        self.label.bind('<Configure>', self._resize_image)
+
+    def _resize_image(self, event):
+        new_width = event.width
+        new_height = event.height
+
+        self.image = self.img_copy.resize((new_width, new_height))
+
+        self.background_image = ImageTk.PhotoImage(self.image)
+        self.label.configure(image=self.background_image)
+
+
+class MiddleMenuTop(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.02, relwidth=0.35, relheight=0.3)
+        self.entry_pose = None
+
+    def activate_widget(self):
+        self.entry_pose = ctk.CTkEntry(master=self)
+        self.entry_pose.pack(relx=10, rely=10, fill='both', expand=True)
+        print('ok')
+
+
+class MiddleMenuMid(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.place(relx=0.23, rely=0.325, relwidth=0.35, relheight=0.3)
+
+
+ctk.set_appearance_mode('')
+ctk.set_default_color_theme('green')
+# Running the app
+App()

@@ -1,0 +1,5 @@
+zivid~=2.11.1.2.11.1
+customtkinter~=5.2.2
+CTkToolTip~=0.8
+fanucpy~=0.1.14
+pillow~=10.2.0

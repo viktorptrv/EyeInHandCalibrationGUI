@@ -287,7 +287,7 @@ class RightMenuTop(ctk.CTkFrame):
 calibration = False
 
 cur_pose = None
-ctk.set_appearance_mode('')
-ctk.set_default_color_theme('green')
+ctk.set_appearance_mode('dark')
+ctk.set_default_color_theme('dark-blue')
 # Running the app
 App()

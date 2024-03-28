@@ -65,9 +65,9 @@ speed_slider = ctk.CTkSlider(master=menu_buttons,
                              width=30)
 speed_slider.grid(row=1, column=0)
 
-angle_int = tk.IntVar(value=10)
+angle_int = tk.IntVar(value=0)
 angle_slider = ctk.CTkSlider(master=menu_buttons,
-                             command=lambda value: print(scale_int.get()),
+                             command=lambda value: print(angle_int.get()),
                              from_=0,
                              to=100,
                              orientation='vertical',

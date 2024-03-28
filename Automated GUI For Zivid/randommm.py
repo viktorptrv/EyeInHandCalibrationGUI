@@ -1,39 +1,34 @@
-import tkinter as tk
-from tkinter import messagebox
-import multiprocessing
+import tkinter  # Python 3
 
-def background_task():
-    global result
+def center(win):
+    """
+    centers a tkinter window
+    :param win: the main window or Toplevel window to center
+    """
+    win.update_idletasks()
+    width = win.winfo_width()
+    frm_width = win.winfo_rootx() - win.winfo_x()
+    win_width = width + 2 * frm_width
+    height = win.winfo_height()
+    titlebar_height = win.winfo_rooty() - win.winfo_y()
+    win_height = height + titlebar_height + frm_width
+    x = win.winfo_screenwidth() // 2 - win_width // 2
+    y = win.winfo_screenheight() // 2 - win_height // 2
+    win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+    win.deiconify()
 
-    """Background task to be run in a separate process."""
-    # This is just a placeholder function for demonstration purposes.
-    # Replace it with your actual background processing logic.
-    result = "Result of background processing"
-    return result
-
-def start_background_process():
-    """Start a background process."""
-    # Create a multiprocessing.Process object
-    process = multiprocessing.Process(target=background_task)
-    print(process.start())
-    # Optionally, you can wait for the process to finish:
-    # process.join()
-
-def on_button_click():
-    """Handle button click event."""
-    # Start the background process
-    start_background_process()
-    # Display a message box to indicate the process has started
-    messagebox.showinfo("Info", f"{result}")
-
-result = None
-# Create the main application window
-root = tk.Tk()
-root.title("Multiprocessing with GUI")
-
-# Create a button to start the background process
-button = tk.Button(root, text="Start Background Process", command=on_button_click)
-button.pack(pady=20)
-
-# Run the GUI event loop
-root.mainloop()
+if __name__ == '__main__':
+    root = tkinter.Tk()
+    root.attributes('-alpha', 0.0)
+    menubar = tkinter.Menu(root)
+    filemenu = tkinter.Menu(menubar, tearoff=0)
+    filemenu.add_command(label="Exit", command=root.destroy)
+    menubar.add_cascade(label="File", menu=filemenu)
+    root.config(menu=menubar)
+    frm = tkinter.Frame(root, bd=4, relief='raised')
+    frm.pack(fill='x')
+    lab = tkinter.Label(frm, text='Hello World!', bd=4, relief='sunken')
+    lab.pack(ipadx=4, padx=4, ipady=4, pady=4, fill='both')
+    center(root)
+    root.attributes('-alpha', 1.0)
+    root.mainloop()
