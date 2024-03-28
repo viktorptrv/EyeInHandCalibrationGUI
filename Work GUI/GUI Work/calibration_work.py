@@ -1,26 +1,22 @@
+import threading
 import tkinter as tk
 import customtkinter as ctk
 import zivid
-from tkinter import ttk
+import datetime
+import yaml
+import math
+import numpy as np
+import multiprocessing
 from tkinter import messagebox
 from CTkToolTip import *
 from fanucpy import Robot
 from PIL import Image, ImageTk
 from warmup import warmup
 from get_camera_intrinsics import camera_intrinsics
-from hand_in_eye_calibration import calibrate_hand_eye
-# from manual_hand_eye_calibration import manual_calibrate_hand_eye
-
-import datetime
 from pathlib import Path
 from typing import List
-
-import yaml
-import math
-import numpy as np
 from numpy import pi
 from sample_utils.save_load_matrix import assert_affine_matrix_and_save
-
 
 def get_curposv2(self, uframe, tframe) -> list[float]:
     """Gets current cartesian position of tool center point.
@@ -128,6 +124,7 @@ class Menu(ctk.CTkFrame):
         self.create_widgets()
 
     def create_widgets(self):
+
         self.connect_cam_button = ctk.CTkButton(master=self,
                                                 text='Connect to Camera',
                                                 command=self.connect_to_cam)
@@ -192,6 +189,9 @@ class Menu(ctk.CTkFrame):
         self.label.grid(row=14, column=0, columnspan=7, rowspan=5)
 
     def connect_to_cam(self):
+        multiprocessing.Process(target=self.connect_to_cam_worker).start()
+
+    def connect_to_cam_worker(self):
         if not self.connected_camera:
             try:
                 app = zivid.Application()
@@ -218,6 +218,9 @@ class Menu(ctk.CTkFrame):
             messagebox.showinfo('Connected!', 'You are already connected to the camera!')
 
     def init_robot(self):
+        multiprocessing.Process(target=self.init_robot_worker).start()
+
+    def init_robot_worker(self):
         if not self.connected_robot:
             try:
                 self.robot_fanuc.connect()
@@ -261,6 +264,9 @@ class Menu(ctk.CTkFrame):
             camera_intrinsics(self.camera)
 
     def auto_calibration(self):
+        multiprocessing.Process(target=self.auto_calibration_worker).start()
+
+    def auto_calibration_worker(self):
 
         if not self.automated_calib_on:
             if self.manual_calib_on:
@@ -290,13 +296,16 @@ class Menu(ctk.CTkFrame):
             return_value = self.calibrate_hand_eye(robot=self.robot_fanuc,
                                                    robot_joints=self.coordinates,
                                                    camera=self.camera)
-            self.entry_pose.delete(0)
+            self.entry_pose.delete(0, 'end')
             self.entry_pose.insert(0, return_value)
         except Exception:
             messagebox.showinfo('Error!', 'You either pressed the button with no positions inserted '
                                           'or there was some kind of error!')
 
     def manual_calibration(self):
+        multiprocessing.Process(target=self.manual_calibration_worker).start()
+
+    def manual_calibration_worker(self):
         if not self.manual_calib_on:
             if self.automated_calib_on:
                 self.entry_pose.grid_forget()
@@ -313,8 +322,11 @@ class Menu(ctk.CTkFrame):
             self.manual_calib_on = True
             self.automated_calib_on = False
 
-        # manual_calibrate_hand_eye(robot=self.robot_fanuc,
-        #                           camera=self.camera)
+            return_value = self.manual_calibrate_hand_eye(robot=self.robot_fanuc,
+                                      camera=self.camera)
+
+            self.entry_pose.delete(0, 'end')
+            self.entry_pose.insert(0, return_value)
 
     def show_depth(self):
         pass
@@ -341,6 +353,8 @@ class Menu(ctk.CTkFrame):
         except Exception:
             messagebox.showinfo('Error!', 'Cannot get the robots position. Check '
                                           'the connection!')
+        if self.manual_calib_on:
+            pass
 
     def matrix_to_string(self, matrix):
         rows = len(matrix)
@@ -428,7 +442,7 @@ class Menu(ctk.CTkFrame):
         # )
 
         # Converting the matrix to a one string and adding it as a pose
-        inputted = matrix_to_string(matrix)
+        inputted = self.matrix_to_string(matrix)
 
         # If the code above doesn't work, comment it out and uncomment the one below
         # flattened_matrix = [item for row in matrix for item in row]
@@ -451,11 +465,11 @@ class Menu(ctk.CTkFrame):
 
         """
         while True:
-            calibration_type = input("Enter type of calibration, eth (for eye-to-hand) or eih (for eye-in-hand):").strip()
-            if calibration_type.lower() == "eth":
-                print("Performing eye-to-hand calibration")
-                hand_eye_output = zivid.calibration.calibrate_eye_to_hand(hand_eye_input)
-                return hand_eye_output
+            calibration_type = 'eih'
+            # if calibration_type.lower() == "eth":
+            #     print("Performing eye-to-hand calibration")
+            #     hand_eye_output = zivid.calibration.calibrate_eye_to_hand(hand_eye_input)
+            #     return hand_eye_output
             if calibration_type.lower() == "eih":
                 print("Performing eye-in-hand calibration")
                 hand_eye_output = zivid.calibration.calibrate_eye_in_hand(hand_eye_input)
@@ -568,11 +582,14 @@ class Menu(ctk.CTkFrame):
                         hand_eye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
                         current_pose_id += 1
                     else:
-                        print(
-                            "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
-                        )
+                        messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
+                                                                        " board, ensure that the entire board is "
+                                                                        "in the view of the camera")
+                        # print(
+                        #     "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
+                        # )
                 except ValueError as ex:
-                    print(ex)
+                    messagebox.showinfo('Error', f"The error is: {ex}")
 
             calibrate = True
 
@@ -582,10 +599,12 @@ class Menu(ctk.CTkFrame):
         assert_affine_matrix_and_save(transform, transform_file_path)
 
         if calibration_result.valid():
-            print("Hand-Eye calibration OK")
-            print(f"Result:\n{calibration_result}")
+            # print("Hand-Eye calibration OK")
+            messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+            return calibration_result
         else:
             print("Hand-Eye calibration FAILED")
+            messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
 
 
 cur_pose = None
