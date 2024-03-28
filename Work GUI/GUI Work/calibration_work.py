@@ -189,7 +189,7 @@ class Menu(ctk.CTkFrame):
         self.label.grid(row=14, column=0, columnspan=7, rowspan=5)
 
     def connect_to_cam(self):
-        multiprocessing.Process(target=self.connect_to_cam_worker).start()
+        threading.Thread(target=self.connect_to_cam_worker).start()
 
     def connect_to_cam_worker(self):
         if not self.connected_camera:
@@ -218,7 +218,7 @@ class Menu(ctk.CTkFrame):
             messagebox.showinfo('Connected!', 'You are already connected to the camera!')
 
     def init_robot(self):
-        multiprocessing.Process(target=self.init_robot_worker).start()
+        threading.Thread(target=self.init_robot_worker).start()
 
     def init_robot_worker(self):
         if not self.connected_robot:
@@ -264,7 +264,7 @@ class Menu(ctk.CTkFrame):
             camera_intrinsics(self.camera)
 
     def auto_calibration(self):
-        multiprocessing.Process(target=self.auto_calibration_worker).start()
+        threading.Thread(target=self.auto_calibration_worker).start()
 
     def auto_calibration_worker(self):
 
@@ -303,7 +303,7 @@ class Menu(ctk.CTkFrame):
                                           'or there was some kind of error!')
 
     def manual_calibration(self):
-        multiprocessing.Process(target=self.manual_calibration_worker).start()
+        threading.Thread(target=self.manual_calibration_worker).start()
 
     def manual_calibration_worker(self):
         if not self.manual_calib_on:
@@ -611,4 +611,4 @@ cur_pose = None
 ctk.set_appearance_mode('dark')
 ctk.set_default_color_theme('dark-blue')
 
-App()
+threading.Thread(target=App).start()
