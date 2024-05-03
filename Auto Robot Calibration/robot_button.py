@@ -2,12 +2,17 @@ import tkinter as tk
 import customtkinter as ctk
 
 from PIL import Image, ImageTk
-from main import App
+from Menu_One import FrameLeft
 
 
 class RobotButton(ctk.CTkButton):
-    def __init__(self, App):
-        super().__init__(App)
-        pass
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.configure(text='Hello')
 
-        # self.
+        self.grid(row=0, column=3, padx=10, pady=10)
+
+
+
+
+# FrameLeft.robot = RobotButton(FrameLeft)
