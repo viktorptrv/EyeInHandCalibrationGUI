@@ -18,7 +18,7 @@ from images import ImageCam, ImageRobot, ImageIntr, CamButtonBlur, WarmUpBlur
 from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
 from zivid_image import FrameZivid
 from entries import CamIPEntry, CamPortEntry, RobPortEntry, RobIPEntry, RobTFEntry, RobUFEntry
-
+from frame_coords import FrameCoords
 
 class App(ctk.CTk):
     def __init__(self):
@@ -33,10 +33,13 @@ class App(ctk.CTk):
         self.camera_button = None
 
         """
-        Configuring the Menus
+        Configuring Frames
         """
         self.MenuLeft = FrameLeft(self)
         self.MenuLeft.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
+
+        self.FrameCoords = FrameCoords(self.MenuLeft)
+        self.FrameCoords.place(relx=0.05, rely=0.5, relwidth=0.90, relheight=0.2)
 
         # self.MenuRight = FrameRight(self)
         # self.MenuRight.place(relx=0.502, rely=0.01, relwidth=0.49, relheight=0.98)
@@ -131,7 +134,12 @@ class App(ctk.CTk):
         """
         За функциолността на бутоните, ще ги включим тук в отделна функция за всеки бутон
         """
-        self.CameraButton.configure(command=lambda: self.WarmUpBlur.place_forget())
+        self.CameraButton.configure(command=self.remove_blur)
+
+    def remove_blur(self):
+        self.WarmUpBlur.place_forget()
+        self.ImageIntr.place_forget()
+        self.CamButtonBlur.place_forget()
 
 
 if __name__ == '__main__':
