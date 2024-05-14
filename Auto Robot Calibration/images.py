@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-
+from CTkToolTip import *
 from PIL import Image, ImageTk
 
 
@@ -29,6 +29,7 @@ class ImageIntr(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image_intr_button_blur.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the camera\nthe options are only readable')
 
 
 class CamButtonBlur(ctk.CTkLabel):
@@ -38,6 +39,7 @@ class CamButtonBlur(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image_cam_button_blur.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the camera\nthe options are only readable')
 
 
 class WarmUpBlur(ctk.CTkLabel):
@@ -47,6 +49,7 @@ class WarmUpBlur(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image-6.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the camera\nthe options are only readable')
 
 
 class CurrPoseBlur(ctk.CTkLabel):
@@ -56,6 +59,7 @@ class CurrPoseBlur(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image-8.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the robot\nthe options are only readable')
 
 
 class CurrJPoseBlur(ctk.CTkLabel):
@@ -65,6 +69,7 @@ class CurrJPoseBlur(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image-9.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the robot\nthe options are only readable')
 
 
 class SendRobotBlur(ctk.CTkLabel):
@@ -74,3 +79,4 @@ class SendRobotBlur(ctk.CTkLabel):
                                           dark_image=Image.open('Images/image-11.webp'),
                                           size=(200, 40)))
         self.configure(text='')
+        CTkToolTip(self, message='Since you are not connected to the robot\nthe options are only readable')

@@ -1,7 +1,10 @@
-import tkinter as tk
-import customtkinter as ctk
+import logging
+import queue
+import time
+import zivid
 
-from PIL import Image, ImageTk
+import customtkinter as ctk
+from tkinter import messagebox
 
 
 class CameraButton(ctk.CTkButton):
@@ -13,10 +16,22 @@ class CameraButton(ctk.CTkButton):
         self.configure(anchor='center')
         self.configure(width=200)
         self.configure(height=40)
-        self.configure(command=self.remove_image)
+        # self.configure(command=self.remove_image)
 
-    def remove_image(self):
-        from main import WarmUpBlur
+    @staticmethod
+    def connect_camera(q):
+        app = None
 
-        WarmUpBlur.place_forget(self)
+        try:
+            app = zivid.Application()
+            app.connect_camera()
+
+        except Exception as ex:
+            messagebox.showinfo('Error', 'You could not connect to the camera!\n'
+                                         'Check your network!')
+            logging.error(f"Camera Exception: {ex}")
+
+        if app:
+            return q.append(app)
+
 

@@ -1,6 +1,8 @@
-import time
-import tkinter as tk
+import logging
+import threading
 import customtkinter as ctk
+from collections import deque
+import multiprocessing
 
 from PIL import Image, ImageTk
 from robot_button import RobotButton
@@ -19,8 +21,11 @@ from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
 from zivid_image import FrameZivid
 from entries import CamIPEntry, CamPortEntry, RobPortEntry, RobIPEntry, RobTFEntry, RobUFEntry
 from frame_coords import FrameCoords
+from CTkToolTip import *
+
 
 class App(ctk.CTk):
+
     def __init__(self):
         super().__init__() # With the super method we include a master
 
@@ -29,8 +34,12 @@ class App(ctk.CTk):
         # self.maxsize(700, 700)
         self.minsize(700, 700)
 
+        self.camera = None
+        self.robot = None
+
         self.robot_button = None
         self.camera_button = None
+
 
         """
         Configuring Frames
@@ -134,15 +143,58 @@ class App(ctk.CTk):
         """
         За функциолността на бутоните, ще ги включим тук в отделна функция за всеки бутон
         """
-        self.CameraButton.configure(command=self.remove_blur)
+        self.CameraButton.configure(command=self.thread_connect_camera)
 
-    def remove_blur(self):
-        self.WarmUpBlur.place_forget()
-        self.ImageIntr.place_forget()
-        self.CamButtonBlur.place_forget()
+        self.RobotButton.configure(command=self.thread_connect_robot)
+
+    def thread_connect_camera(self):
+        # The deque class can be used for returning values
+        # The deque class is thread safe and is iterable
+        # A deque object does not block, if the maxsize has been reached.
+        # In this case the last or first element is dropped from the list.
+        que = deque()
+        # Call work function
+        try:
+            t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
+            t1.start()
+            t1.join()
+
+            if que[0]:
+                self.camera = que[1]
+                self.WarmUpBlur.place_forget()
+                self.ImageIntr.place_forget()
+                self.CamButtonBlur.place_forget()
+            #     Change color of buttons and unblur
+
+        except Exception as ex:
+            print(f"Camera exception: {ex}")
+            logging.error(f"Camera Exception: {ex}")
+
+    def thread_connect_robot(self):
+        # The queue class can be used for returning values
+        que_rob = deque()
+        # Call work function
+        try:
+            t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob), daemon=True)
+            t2.start()
+            t2.join()
+
+            if que_rob[0]:
+                self.robot = que_rob[1]
+                self.SendRobotBlur.place_forget()
+                self.CurrPoseBlur.place_forget()
+                self.CurrJPoseBlur.place_forget()
+                #     Change color of buttons and unblur
+
+        except Exception as ex:
+            print(f"Robot exception: ", ex)
+            logging.error(f"Robot Exception: {ex}")
 
 
 if __name__ == '__main__':
+    # global robot
+    # global camera
+
     ctk.set_appearance_mode('dark')
     ctk.set_default_color_theme('blue')
 
@@ -150,5 +202,8 @@ if __name__ == '__main__':
     First we create the object and then we run it with mainloop.
     This way it will create all the needed widgets and run all the threads
     """
-    app = App()
-    app.mainloop()
+    try:
+        app = App()
+        app.mainloop()
+    except Exception as ex:
+        logging.error(f"Window exception: {ex}")
