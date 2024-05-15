@@ -38,7 +38,7 @@ class RobotButton(ctk.CTkButton):
                                               'Check your network!')
 
             if is_robot_connected:
-                return q.append(is_robot_connected, robot_fanuc)
+                return q.append(is_robot_connected), q.append(robot_fanuc)
 
             return q.append(is_robot_connected)
 

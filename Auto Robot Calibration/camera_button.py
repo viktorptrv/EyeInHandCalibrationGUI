@@ -22,9 +22,12 @@ class CameraButton(ctk.CTkButton):
     def connect_camera(q):
         app = None
 
+        is_camera_connected = False
+
         try:
             app = zivid.Application()
             app.connect_camera()
+            is_camera_connected = True
 
         except Exception as ex:
             messagebox.showinfo('Error', 'You could not connect to the camera!\n'
@@ -32,6 +35,6 @@ class CameraButton(ctk.CTkButton):
             logging.error(f"Camera Exception: {ex}")
 
         if app:
-            return q.append(app)
+            return q.append(is_camera_connected), q.append(app)
 
 
