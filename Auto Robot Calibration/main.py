@@ -1,9 +1,12 @@
 import logging
 import threading
 import customtkinter as ctk
-from collections import deque
+from tkinter import ttk
+
 import multiprocessing
 
+from tkinter import filedialog as fd
+from collections import deque
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from robot_button import RobotButton
@@ -20,10 +23,12 @@ from warm_up import WarmUpButton
 from images import ImageCam, ImageRobot, ImageIntr, CamButtonBlur, WarmUpBlur
 from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
 from zivid_image import FrameZivid
-from entries import CamIPEntry, CamPortEntry, RobPortEntry, RobIPEntry, RobTFEntry, RobUFEntry
+from entries import *
 from frame_coords import FrameCoords
 from choose_calibration import *
 from coordinates_widgets import Coords, JCoords
+from load_file_button import LoadFileButton
+from text_poses import TextPoses
 from CTkToolTip import *
 
 
@@ -44,15 +49,15 @@ class SplashScreen(ctk.CTk):
         self.SplashLabel = ctk.CTkLabel(self,
                                         text='',
                                         image=ctk.CTkImage(light_image=Image.open('Images/logo-color.png'),
-                                        dark_image=Image.open('Images/logo-color.png'),
-                                        size=(self.width, self.height)))
+                                                           dark_image=Image.open('Images/logo-color.png'),
+                                                           size=(self.width, self.height)))
 
         self.SplashLabel.pack(fill='both', expand=True)
 
 
 class App(ctk.CTk):
     def __init__(self):
-        super().__init__() # With the super method we include a master
+        super().__init__()  # With the super method we include a master
 
         self.title('Calibration App')
         self.width = 350
@@ -70,6 +75,8 @@ class App(ctk.CTk):
         self.robot_button = None
         self.camera_button = None
 
+        self.file_types = (('text files', '*.txt'),
+                           ('All files', '*.*'))
 
         """
         Configuring Frames
@@ -79,7 +86,6 @@ class App(ctk.CTk):
 
         self.FrameCoords = FrameCoords(self.MenuLeft)
         self.FrameCoords.place(relx=0.1, rely=0.5, relwidth=0.80, relheight=0.2)
-
 
         """
         Configuring Entries
@@ -143,7 +149,7 @@ class App(ctk.CTk):
 
         self.AutoCalib_button = AutoCalibrate(self.FrameCoords)
         self.AutoCalib_button.place(relx=0.15, rely=0.05)
-        self.AutoCalib_button.configure(command=self.auto_checkbox_event)
+        # self.AutoCalib_button.configure(command=self.auto_checkbox_event)
         # self.AutoCalib_button.configure(state='disabled')
         self.AutoCalib_button.configure(state='normal')
         self.AutoCalib_button.configure(command=self.import_file_with_poses)
@@ -153,6 +159,10 @@ class App(ctk.CTk):
         self.ManualCalib_button.configure(command=self.man_checkbox_event)
         # self.ManualCalib_button.configure(state='disabled')
         self.ManualCalib_button.configure(state='normal')
+
+        self.LoadFileButton = LoadFileButton(self.FrameCoords)
+
+        self.TextPoses = TextPoses(self.FrameCoords)
 
         """
         adding images to the GUI
@@ -203,21 +213,41 @@ class App(ctk.CTk):
     def import_file_with_poses(self):
         self.JCoords.place_forget()
         self.Coords.place_forget()
+        if self.AutoCalib_button.check_var_auto.get() == 1:
+            self.ManualCalib_button.configure(state='disabled')
+            self.LoadFileButton.place(relx=0.35, rely=0.3)
+            self.LoadFileButton.configure(command=self.load_file)
+        else:
+            self.ManualCalib_button.configure(state='normal')
+            self.JCoords.place(relx=0.1, rely=0.65, relwidth=0.8, relheight=0.3)
+            self.Coords.place(relx=0.1, rely=0.3, relwidth=0.8, relheight=0.3)
+            if self.LoadFileButton:
+                self.LoadFileButton.place_forget()
+                self.TextPoses.place_forget()
 
+
+
+    def load_file(self):
+        self.TextPoses.place(relx=0.1, rely=0.6, relwidth=0.8, relheight=0.35)
+
+        file = fd.askopenfile(filetypes=self.file_types,
+                              initialdir="D:/Downloads")
+
+        self.TextPoses.insert('1.0', file.readlines())
 
     # def enable_check_button(self):
     #     while self.camera and self.robot:
     #         self.AutoCalib_button.configure(state='normal')
     #         self.ManualCalib_button.configure(state='normal')
 
-        # self.ManualCalib_button.configure(state='disabled')
-        # self.AutoCalib_button.configure(state='disabled')
+    # self.ManualCalib_button.configure(state='disabled')
+    # self.AutoCalib_button.configure(state='disabled')
 
-    def auto_checkbox_event(self):
-        if self.AutoCalib_button.check_var_auto.get() == 1:
-            self.ManualCalib_button.configure(state='disabled')
-        else:
-            self.ManualCalib_button.configure(state='normal')
+    # def auto_checkbox_event(self):
+    # if self.AutoCalib_button.check_var_auto.get() == 1:
+    #     self.ManualCalib_button.configure(state='disabled')
+    # else:
+    #     self.ManualCalib_button.configure(state='normal')
 
     def man_checkbox_event(self):
         if self.ManualCalib_button.check_var_manual.get() == 1:
@@ -326,11 +356,9 @@ class App(ctk.CTk):
 
 
 if __name__ == '__main__':
-    # global robot
-    # global camera
-
     def run_window():
         splash_screen.destroy()
+
 
     ctk.set_appearance_mode('dark')
     ctk.set_default_color_theme('blue')
@@ -340,13 +368,12 @@ if __name__ == '__main__':
     This way it will create all the needed widgets and run all the threads
     """
     try:
-        # splash_screen = SplashScreen()
-        # splash_screen.after(3000, run_window)
-        # splash_screen.mainloop()
+        splash_screen = SplashScreen()
+        splash_screen.after(3000, run_window)
+        splash_screen.mainloop()
 
         app = App()
         app.mainloop()
 
     except Exception as ex:
         logging.error(f"Window exception: {ex}")
-
