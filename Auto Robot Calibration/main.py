@@ -22,6 +22,8 @@ from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
 from zivid_image import FrameZivid
 from entries import CamIPEntry, CamPortEntry, RobPortEntry, RobIPEntry, RobTFEntry, RobUFEntry
 from frame_coords import FrameCoords
+from choose_calibration import *
+from coordinates_widgets import Coords, JCoords
 from CTkToolTip import *
 
 
@@ -76,10 +78,8 @@ class App(ctk.CTk):
         self.MenuLeft.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
 
         self.FrameCoords = FrameCoords(self.MenuLeft)
-        self.FrameCoords.place(relx=0.05, rely=0.5, relwidth=0.90, relheight=0.2)
+        self.FrameCoords.place(relx=0.1, rely=0.5, relwidth=0.80, relheight=0.2)
 
-        # self.MenuRight = FrameRight(self)
-        # self.MenuRight.place(relx=0.502, rely=0.01, relwidth=0.49, relheight=0.98)
 
         """
         Configuring Entries
@@ -102,6 +102,12 @@ class App(ctk.CTk):
         self.RobTF = RobTFEntry(self.MenuLeft)
         self.RobTF.place(relx=0.612, rely=0.005)
 
+        self.Coords = Coords(self.FrameCoords)
+        self.Coords.place(relx=0.1, rely=0.3, relwidth=0.8, relheight=0.3)
+
+        self.JCoords = JCoords(self.FrameCoords)
+        self.JCoords.place(relx=0.1, rely=0.65, relwidth=0.8, relheight=0.3)
+
         """
         Configuring Buttons
         """
@@ -118,23 +124,35 @@ class App(ctk.CTk):
         # self.FrameZivid.place(relx=0.01, rely=0.2, relwidth=0.98, relheight=0.79)
 
         self.WarmUp = WarmUpButton(self.MenuLeft)
-        self.WarmUp.place(relx=0.15, rely=0.2)
+        self.WarmUp.place(relx=0.1, rely=0.2)
 
         self.TakePicButton = TakePicButton(self.MenuLeft)
-        self.TakePicButton.place(relx=0.15, rely=0.3)
+        self.TakePicButton.place(relx=0.1, rely=0.3)
 
         self.IntrscsButton = IntrButton(self.MenuLeft)
-        self.IntrscsButton.place(relx=0.15, rely=0.4)
-        # self.IntrscsButton.grid(row=3, column=1)
+        self.IntrscsButton.place(relx=0.1, rely=0.4)
 
         self.CurrPose = CurrPoseButton(self.MenuLeft)
-        self.CurrPose.place(relx=0.65, rely=0.2)
+        self.CurrPose.place(relx=0.6, rely=0.2)
 
         self.CurrJPose = CurrJPoseButton(self.MenuLeft)
-        self.CurrJPose.place(relx=0.65, rely=0.3)
+        self.CurrJPose.place(relx=0.6, rely=0.3)
 
         self.SendRobot = SendRobotButton(self.MenuLeft)
-        self.SendRobot.place(relx=0.65, rely=0.4)
+        self.SendRobot.place(relx=0.6, rely=0.4)
+
+        self.AutoCalib_button = AutoCalibrate(self.FrameCoords)
+        self.AutoCalib_button.place(relx=0.15, rely=0.05)
+        self.AutoCalib_button.configure(command=self.auto_checkbox_event)
+        # self.AutoCalib_button.configure(state='disabled')
+        self.AutoCalib_button.configure(state='normal')
+        self.AutoCalib_button.configure(command=self.import_file_with_poses)
+
+        self.ManualCalib_button = ManualCalibrate(self.FrameCoords)
+        self.ManualCalib_button.place(relx=0.6, rely=0.05)
+        self.ManualCalib_button.configure(command=self.man_checkbox_event)
+        # self.ManualCalib_button.configure(state='disabled')
+        self.ManualCalib_button.configure(state='normal')
 
         """
         adding images to the GUI
@@ -151,22 +169,22 @@ class App(ctk.CTk):
         self.RobotButton.lift()
 
         self.ImageIntr = ImageIntr(self.MenuLeft)
-        self.ImageIntr.place(relx=0.15, rely=0.4)
+        self.ImageIntr.place(relx=0.1, rely=0.4)
 
         self.CamButtonBlur = CamButtonBlur(self.MenuLeft)
-        self.CamButtonBlur.place(relx=0.15, rely=0.3)
+        self.CamButtonBlur.place(relx=0.1, rely=0.3)
 
         self.WarmUpBlur = WarmUpBlur(self.MenuLeft)
-        self.WarmUpBlur.place(relx=0.15, rely=0.2)
+        self.WarmUpBlur.place(relx=0.1, rely=0.2)
 
         self.CurrPoseBlur = CurrPoseBlur(self.MenuLeft)
-        self.CurrPoseBlur.place(relx=0.65, rely=0.2)
+        self.CurrPoseBlur.place(relx=0.6, rely=0.2)
 
         self.CurrJPoseBlur = CurrJPoseBlur(self.MenuLeft)
-        self.CurrJPoseBlur.place(relx=0.65, rely=0.3)
+        self.CurrJPoseBlur.place(relx=0.6, rely=0.3)
 
         self.SendRobotBlur = SendRobotBlur(self.MenuLeft)
-        self.SendRobotBlur.place(relx=0.65, rely=0.4)
+        self.SendRobotBlur.place(relx=0.6, rely=0.4)
 
         """
         За функциолността на бутоните, ще ги включим тук в отделна функция за всеки бутон
@@ -179,8 +197,33 @@ class App(ctk.CTk):
         Thread, който постоянно проверява дали има връзка с камерата/робота, след като са били свързани
         """
         self.Thread_robot_check_connection = threading.Thread(target=self.check_robot_connection, daemon=True)
-
         self.Thread_camera_check_connection = threading.Thread(target=self.check_camera_connection, daemon=True)
+        # self.Thread_check_button = threading.Thread(target=self.enable_check_button, daemon=True)
+
+    def import_file_with_poses(self):
+        self.JCoords.place_forget()
+        self.Coords.place_forget()
+
+
+    # def enable_check_button(self):
+    #     while self.camera and self.robot:
+    #         self.AutoCalib_button.configure(state='normal')
+    #         self.ManualCalib_button.configure(state='normal')
+
+        # self.ManualCalib_button.configure(state='disabled')
+        # self.AutoCalib_button.configure(state='disabled')
+
+    def auto_checkbox_event(self):
+        if self.AutoCalib_button.check_var_auto.get() == 1:
+            self.ManualCalib_button.configure(state='disabled')
+        else:
+            self.ManualCalib_button.configure(state='normal')
+
+    def man_checkbox_event(self):
+        if self.ManualCalib_button.check_var_manual.get() == 1:
+            self.AutoCalib_button.configure(state='disabled')
+        else:
+            self.AutoCalib_button.configure(state='normal')
 
     def check_camera_connection(self):
         if not self.camera:
@@ -201,21 +244,35 @@ class App(ctk.CTk):
             t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
             t1.start()
 
-            if que[0]:
-                self.camera = que[1]
-                self.WarmUpBlur.place_forget()
-                self.ImageIntr.place_forget()
-                self.CamButtonBlur.place_forget()
-                self.Thread_camera_check_connection.start()
+            # if que[0]:
+            #     self.camera = que[1]
+            #     self.WarmUpBlur.place_forget()
+            #     self.ImageIntr.place_forget()
+            #     self.CamButtonBlur.place_forget()
+            #     self.Thread_camera_check_connection.start()
+            #
+            #     self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+            #                             dark_image=Image.open('Images/camera_light_green.png'),
+            #                             size=(100, 100)))
+            #
+            #     self.CamIPEntry.configure(fg_color='#2DFE54')
+            #     self.CamPortEntry.configure(fg_color='#2DFE54')
+            #     self.CameraButton.configure(fg_color='#2DFE54')
+            #     self.CameraButton.configure(text="Camera Connected!")
 
-                self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-                                        dark_image=Image.open('Images/camera_light_green.png'),
-                                        size=(100, 100)))
+            self.WarmUpBlur.place_forget()
+            self.ImageIntr.place_forget()
+            self.CamButtonBlur.place_forget()
+            self.Thread_camera_check_connection.start()
 
-                self.CamIPEntry.configure(fg_color='#2DFE54')
-                self.CamPortEntry.configure(fg_color='#2DFE54')
-                self.CameraButton.configure(fg_color='#2DFE54')
-                self.CameraButton.configure(text="Camera Connected!")
+            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+                                                       dark_image=Image.open('Images/camera_light_green.png'),
+                                                       size=(100, 100)))
+
+            self.CamIPEntry.configure(fg_color='#2DFE54')
+            self.CamPortEntry.configure(fg_color='#2DFE54')
+            self.CameraButton.configure(fg_color='#2DFE54')
+            self.CameraButton.configure(text="Camera Connected!")
 
         except Exception as ex:
             print(f"Camera exception: {ex}")
@@ -229,24 +286,39 @@ class App(ctk.CTk):
             t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob), daemon=True)
             t2.start()
 
-            if que_rob[0]:
-                self.robot = que_rob[1]
-                self.SendRobotBlur.place_forget()
-                self.CurrPoseBlur.place_forget()
-                self.CurrJPoseBlur.place_forget()
-                self.Thread_robot_check_connection.start()
+            # if que_rob[0]:
+            #     self.robot = que_rob[1]
+            #     self.SendRobotBlur.place_forget()
+            #     self.CurrPoseBlur.place_forget()
+            #     self.CurrJPoseBlur.place_forget()
+            #     self.Thread_robot_check_connection.start()
+            #
+            #     self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
+            #                             dark_image=Image.open('Images/robotic_arm_green.png'),
+            #                             size=(80, 80)))
+            #
+            #     self.RobUF.configure(fg_color='#2DFE54')
+            #     self.RobotButton.configure(fg_color='#2DFE54')
+            #     self.RobTF.configure(fg_color='#2DFE54')
+            #     self.RobIPEntry.configure(fg_color='#2DFE54')
+            #     self.RobPortEntry.configure(fg_color='#2DFE54')
+            #     self.RobotButton.configure(text="Robot Connected!")
 
-                    # Change Robot picture color
-                self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
-                                        dark_image=Image.open('Images/robotic_arm_green.png'),
-                                        size=(80, 80)))
+            self.SendRobotBlur.place_forget()
+            self.CurrPoseBlur.place_forget()
+            self.CurrJPoseBlur.place_forget()
+            self.Thread_robot_check_connection.start()
 
-                self.RobUF.configure(fg_color='#2DFE54')
-                self.RobotButton.configure(fg_color='#2DFE54')
-                self.RobTF.configure(fg_color='#2DFE54')
-                self.RobIPEntry.configure(fg_color='#2DFE54')
-                self.RobPortEntry.configure(fg_color='#2DFE54')
-                self.RobotButton.configure(text="Robot Connected!")
+            self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
+                                                       dark_image=Image.open('Images/robotic_arm_green.png'),
+                                                       size=(80, 80)))
+
+            self.RobUF.configure(fg_color='#2DFE54')
+            self.RobotButton.configure(fg_color='#2DFE54')
+            self.RobTF.configure(fg_color='#2DFE54')
+            self.RobIPEntry.configure(fg_color='#2DFE54')
+            self.RobPortEntry.configure(fg_color='#2DFE54')
+            self.RobotButton.configure(text="Robot Connected!")
 
         except Exception as ex:
             print(f"Robot exception: ", ex)
@@ -268,16 +340,9 @@ if __name__ == '__main__':
     This way it will create all the needed widgets and run all the threads
     """
     try:
-        splash_screen = SplashScreen()
-        splash_screen.after(3000, run_window)
-        splash_screen.mainloop()
-
-        # progress_bar_splash_scr = ctk.CTkProgressBar(master=splash_screen,
-        #                                              orientation='horizontal',
-        #                                              mode='indeterminate',
-        #                                              length=100)
-        # progress_bar_splash_scr.place(relx=0.1, rely=0.8)
-        # progress_bar_splash_scr.lift()
+        # splash_screen = SplashScreen()
+        # splash_screen.after(3000, run_window)
+        # splash_screen.mainloop()
 
         app = App()
         app.mainloop()
