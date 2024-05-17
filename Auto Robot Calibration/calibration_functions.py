@@ -163,7 +163,8 @@ def _assisted_capture(self, camera: zivid.Camera, current_pose) -> zivid.Frame:
     return_ply.save("img" + str(current_pose) + ".zdf")
     return_ply.save('img' + str(current_pose) + '.png')
     return return_ply
-def calibrate_hand_eye(self, robot_joints, robot, camera):
+
+def calibrate_hand_eye(robot_joints, robot, camera):
     if not camera:
         app = zivid.Application()
 

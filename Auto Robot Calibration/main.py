@@ -30,6 +30,8 @@ from coordinates_widgets import Coords, JCoords
 from load_file_button import LoadFileButton
 from text_poses import TextPoses
 from CTkToolTip import *
+from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye
+from menu_bar import MenuBar
 
 
 class SplashScreen(ctk.CTk):
@@ -60,14 +62,14 @@ class App(ctk.CTk):
         super().__init__()  # With the super method we include a master
 
         self.title('Calibration App')
-        self.width = 350
+        self.width = 700
         self.height = 700
         self.x = (self.winfo_screenwidth() // 2) - (self.width // 2)
         self.y = (self.winfo_screenheight() // 2) - (self.height // 2)
         self.geometry('{}x{}+{}+{}'.format(self.width, self.height, self.x, self.y))
         # self.maxsize(700, 700)
         self.minsize(700, 350)
-        self.maxsize(700, 700)
+        # self.maxsize(700, 700)
 
         self.camera = None
         self.robot = None
@@ -78,34 +80,40 @@ class App(ctk.CTk):
         self.file_types = (('text files', '*.txt'),
                            ('All files', '*.*'))
 
+        self.auto_calib_pose_dict = {}
+
+        self.file_int = []
+
+        self.calibration_type = None
+
         """
         Configuring Frames
         """
-        self.MenuLeft = FrameLeft(self)
-        self.MenuLeft.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
+        self.Menu = FrameLeft(self)
+        self.Menu.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
 
-        self.FrameCoords = FrameCoords(self.MenuLeft)
+        self.FrameCoords = FrameCoords(self.Menu)
         self.FrameCoords.place(relx=0.1, rely=0.5, relwidth=0.80, relheight=0.2)
 
         """
         Configuring Entries
         """
-        self.CamIPEntry = CamIPEntry(self.MenuLeft)
+        self.CamIPEntry = CamIPEntry(self.Menu)
         self.CamIPEntry.place(relx=0.05, rely=0.05)
 
-        self.CamPortEntry = CamPortEntry(self.MenuLeft)
+        self.CamPortEntry = CamPortEntry(self.Menu)
         self.CamPortEntry.place(relx=0.20, rely=0.05)
 
-        self.RobIPEntry = RobIPEntry(self.MenuLeft)
+        self.RobIPEntry = RobIPEntry(self.Menu)
         self.RobIPEntry.place(relx=0.55, rely=0.05)
 
-        self.RobPortEntry = RobPortEntry(self.MenuLeft)
+        self.RobPortEntry = RobPortEntry(self.Menu)
         self.RobPortEntry.place(relx=0.70, rely=0.05)
 
-        self.RobUF = RobUFEntry(self.MenuLeft)
+        self.RobUF = RobUFEntry(self.Menu)
         self.RobUF.place(relx=0.55, rely=0.005)
 
-        self.RobTF = RobTFEntry(self.MenuLeft)
+        self.RobTF = RobTFEntry(self.Menu)
         self.RobTF.place(relx=0.612, rely=0.005)
 
         self.Coords = Coords(self.FrameCoords)
@@ -117,34 +125,36 @@ class App(ctk.CTk):
         """
         Configuring Buttons
         """
-        self.RobotButton = RobotButton(self.MenuLeft)
+        self.MenuBar = MenuBar(self)
+
+        self.RobotButton = RobotButton(self.Menu)
         self.RobotButton.place(relx=0.55, rely=0.1)
 
-        self.CameraButton = CameraButton(self.MenuLeft)
+        self.CameraButton = CameraButton(self.Menu)
         self.CameraButton.place(relx=0.05, rely=0.1)
 
-        self.CalibrateButton = CalibrateButton(self.MenuLeft)
+        self.CalibrateButton = CalibrateButton(self.Menu)
         self.CalibrateButton.place(relx=0.35, rely=0.90)
 
         # self.FrameZivid = FrameZivid(self.MenuRight)
         # self.FrameZivid.place(relx=0.01, rely=0.2, relwidth=0.98, relheight=0.79)
 
-        self.WarmUp = WarmUpButton(self.MenuLeft)
+        self.WarmUp = WarmUpButton(self.Menu)
         self.WarmUp.place(relx=0.1, rely=0.2)
 
-        self.TakePicButton = TakePicButton(self.MenuLeft)
+        self.TakePicButton = TakePicButton(self.Menu)
         self.TakePicButton.place(relx=0.1, rely=0.3)
 
-        self.IntrscsButton = IntrButton(self.MenuLeft)
+        self.IntrscsButton = IntrButton(self.Menu)
         self.IntrscsButton.place(relx=0.1, rely=0.4)
 
-        self.CurrPose = CurrPoseButton(self.MenuLeft)
+        self.CurrPose = CurrPoseButton(self.Menu)
         self.CurrPose.place(relx=0.6, rely=0.2)
 
-        self.CurrJPose = CurrJPoseButton(self.MenuLeft)
+        self.CurrJPose = CurrJPoseButton(self.Menu)
         self.CurrJPose.place(relx=0.6, rely=0.3)
 
-        self.SendRobot = SendRobotButton(self.MenuLeft)
+        self.SendRobot = SendRobotButton(self.Menu)
         self.SendRobot.place(relx=0.6, rely=0.4)
 
         self.AutoCalib_button = AutoCalibrate(self.FrameCoords)
@@ -162,38 +172,46 @@ class App(ctk.CTk):
 
         self.LoadFileButton = LoadFileButton(self.FrameCoords)
 
-        self.TextPoses = TextPoses(self.FrameCoords)
+        self.TextPoses = TextPoses(self.FrameCoords)    # Holder for the poses
+        
+        self.EtH = EyeToHand(self.Menu)
+        self.EtH.place(relx=0.37, rely=0.75)
+        self.EtH.configure(command=self.eth_calib_type_checkbox)
+
+        self.EiH = EyeInHand(self.Menu)
+        self.EiH.place(relx=0.37, rely=0.8)
+        self.EiH.configure(command=self.eih_calib_type_checkbox)
 
         """
         adding images to the GUI
         """
-        self.ImageCam = ImageCam(self.MenuLeft)
+        self.ImageCam = ImageCam(self.Menu)
         self.ImageCam.place(relx=0.34, rely=0.01)
         # Using .lift() function in order to bring the image
         # At the back of the button. It must be added
         # After the image is defined.
         self.CameraButton.lift()
 
-        self.ImageRob = ImageRobot(self.MenuLeft)
+        self.ImageRob = ImageRobot(self.Menu)
         self.ImageRob.place(relx=0.85, rely=0.025)
         self.RobotButton.lift()
 
-        self.ImageIntr = ImageIntr(self.MenuLeft)
+        self.ImageIntr = ImageIntr(self.Menu)
         self.ImageIntr.place(relx=0.1, rely=0.4)
 
-        self.CamButtonBlur = CamButtonBlur(self.MenuLeft)
+        self.CamButtonBlur = CamButtonBlur(self.Menu)
         self.CamButtonBlur.place(relx=0.1, rely=0.3)
 
-        self.WarmUpBlur = WarmUpBlur(self.MenuLeft)
+        self.WarmUpBlur = WarmUpBlur(self.Menu)
         self.WarmUpBlur.place(relx=0.1, rely=0.2)
 
-        self.CurrPoseBlur = CurrPoseBlur(self.MenuLeft)
+        self.CurrPoseBlur = CurrPoseBlur(self.Menu)
         self.CurrPoseBlur.place(relx=0.6, rely=0.2)
 
-        self.CurrJPoseBlur = CurrJPoseBlur(self.MenuLeft)
+        self.CurrJPoseBlur = CurrJPoseBlur(self.Menu)
         self.CurrJPoseBlur.place(relx=0.6, rely=0.3)
 
-        self.SendRobotBlur = SendRobotBlur(self.MenuLeft)
+        self.SendRobotBlur = SendRobotBlur(self.Menu)
         self.SendRobotBlur.place(relx=0.6, rely=0.4)
 
         """
@@ -210,6 +228,22 @@ class App(ctk.CTk):
         self.Thread_camera_check_connection = threading.Thread(target=self.check_camera_connection, daemon=True)
         # self.Thread_check_button = threading.Thread(target=self.enable_check_button, daemon=True)
 
+    def eih_calib_type_checkbox(self):
+        if self.EiH.get() == 1:
+            self.EtH.configure(state='disable')
+            self.calibration_type = 'eih'
+        elif self.EiH.get() == 0:
+            self.EtH.configure(state='normal')
+            self.calibration_type = ''
+
+    def eth_calib_type_checkbox(self):
+        if self.EtH.get() == 1:
+            self.EiH.configure(state='disable')
+            self.calibration_type = 'eth'
+        elif self.EtH.get() == 0:
+            self.EiH.configure(state='normal')
+            self.calibration_type = ''
+
     def import_file_with_poses(self):
         self.JCoords.place_forget()
         self.Coords.place_forget()
@@ -225,16 +259,46 @@ class App(ctk.CTk):
                 self.LoadFileButton.place_forget()
                 self.TextPoses.place_forget()
 
-
-
     def load_file(self):
         self.TextPoses.place(relx=0.1, rely=0.6, relwidth=0.8, relheight=0.35)
+        try:
+            file = fd.askopenfile(filetypes=self.file_types,
+                                  initialdir="D:/Downloads")
 
-        file = fd.askopenfile(filetypes=self.file_types,
-                              initialdir="D:/Downloads")
+            file_read = file.readlines()
 
-        self.TextPoses.insert('1.0', file.readlines())
+            for i in range(len(file_read)):
+                line = file_read[i].split(', ')
+                last_index = line.pop(-1).strip('\n')
+                self.file_int.append([int(i) for i in line])
+                self.file_int[i].append(int(last_index))
+                print(self.file_int)
 
+            self.TextPoses.insert('1.0', file_read)
+
+            for i in range(len(self.file_int)):
+                self.auto_calib_pose_dict[i] = self.file_int[i]
+
+            print(self.auto_calib_pose_dict)
+
+        except Exception as ex:
+            messagebox.showerror("Error!", "Could not read the file correctly!")
+
+        try:
+            if self.camera and self.robot:
+                try:
+                    if self.auto_calib_pose_dict:
+                        calibrate_hand_eye(self.auto_calib_pose_dict,
+                                           self.robot,
+                                           self.camera)
+
+                except Exception as ex:
+                    messagebox.showwarning('Error!',
+                                           'Could not find poses')
+
+        except Exception as ex:
+            messagebox.showwarning("Not connected!",
+                                   "Either the camera or the robot is not connected!")
     # def enable_check_button(self):
     #     while self.camera and self.robot:
     #         self.AutoCalib_button.configure(state='normal')

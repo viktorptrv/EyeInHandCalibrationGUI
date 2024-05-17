@@ -384,7 +384,7 @@ class Menu(ctk.CTkFrame):
              [0, 0, 0, 1]]
         return H
 
-    def move_robot(self, robot_fanuc, joint_coordinates):
+    def  move_robot(self, robot_fanuc, joint_coordinates):
         x = joint_coordinates[0]
         y = joint_coordinates[1]
         z = joint_coordinates[2]

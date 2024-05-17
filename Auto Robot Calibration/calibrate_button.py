@@ -16,8 +16,10 @@ class CalibrateButton(ctk.CTkButton):
                                   'and you must input them in the menu\n')
 
 
-class NullButton(ctk.CTkButton):
-    def __init__(self,parent):
-        super().__init__(parent)
-        self.configure(fg_color='black')
-        self.configure(state='disabled')
+
+# class NullButton(ctk.CTkButton):
+#     def __init__(self,parent):
+#         super().__init__(parent)
+#         self.configure(fg_color='black')
+#         self.configure(state='disabled')
+
