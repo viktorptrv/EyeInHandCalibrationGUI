@@ -30,7 +30,7 @@ def matrix_to_string(self, matrix):
     return matrix_string.strip()
 
 
-def create_4x4_matrix(self, x1, y1, z1, r1, p1, w1):
+def create_4x4_matrix(x1, y1, z1, r1, p1, w1):
     x, y, z, r, p, w = x1, y1, z1, r1, p1, w1
     a = r * pi / 180
     b = p * pi / 180
@@ -93,7 +93,7 @@ def _enter_robot_pose(self, robot_fanuc, index: int) -> zivid.calibration.Pose:
     with open("PosesAutomatic.txt", 'a') as file:
         file.write(f"Pose with index {index}: {x}, {y}, {z}, {r}, {p}, {w}")
 
-    matrix = self.create_4x4_matrix(x, y, z, r, p, w)
+    matrix = create_4x4_matrix(x, y, z, r, p, w)
 
     # Saving the matrix as a YAML file
     # Later it can be used to verify the hand eye calibration with visualization
@@ -107,7 +107,7 @@ def _enter_robot_pose(self, robot_fanuc, index: int) -> zivid.calibration.Pose:
     # )
 
     # Converting the matrix to a one string and adding it as a pose
-    inputted = self.matrix_to_string(matrix)
+    inputted = matrix_to_string(matrix)
 
     # If the code above doesn't work, comment it out and uncomment the one below
     # flattened_matrix = [item for row in matrix for item in row]
@@ -120,7 +120,7 @@ def _enter_robot_pose(self, robot_fanuc, index: int) -> zivid.calibration.Pose:
     return robot_pose
 
 
-def _perform_calibration(self, hand_eye_input: List[zivid.calibration.HandEyeInput]) -> zivid.calibration.HandEyeOutput:
+def _perform_calibration(self, hand_eye_input: List[zivid.calibration.HandEyeInput], calibration_type) -> zivid.calibration.HandEyeOutput:
     """Hand-Eye calibration type user input.
 
     Args:
@@ -131,11 +131,12 @@ def _perform_calibration(self, hand_eye_input: List[zivid.calibration.HandEyeInp
 
     """
     while True:
-        calibration_type = 'eih'
-        # if calibration_type.lower() == "eth":
-        #     print("Performing eye-to-hand calibration")
-        #     hand_eye_output = zivid.calibration.calibrate_eye_to_hand(hand_eye_input)
-        #     return hand_eye_output
+        # calibration_type = 'eih'
+
+        if calibration_type.lower() == "eth":
+            print("Performing eye-to-hand calibration")
+            hand_eye_output = zivid.calibration.calibrate_eye_to_hand(hand_eye_input)
+            return hand_eye_output
         if calibration_type.lower() == "eih":
             print("Performing eye-in-hand calibration")
             hand_eye_output = zivid.calibration.calibrate_eye_in_hand(hand_eye_input)
@@ -164,7 +165,9 @@ def _assisted_capture(self, camera: zivid.Camera, current_pose) -> zivid.Frame:
     return_ply.save('img' + str(current_pose) + '.png')
     return return_ply
 
-def calibrate_hand_eye(robot_joints, robot, camera):
+
+def calibrate_hand_eye(robot_joints, robot, camera, calibration_type):
+
     if not camera:
         app = zivid.Application()
 
@@ -181,11 +184,11 @@ def calibrate_hand_eye(robot_joints, robot, camera):
 
                 try:
                     # Sending the robot to the desired position
-                    self.move_robot(robot, robot_joints[current_pose_id])
+                    move_robot(robot, robot_joints[current_pose_id])
 
-                    robot_pose = self._enter_robot_pose(robot, current_pose_id)
+                    robot_pose = _enter_robot_pose(robot, current_pose_id)
 
-                    frame = self._assisted_capture(camera, current_pose_id)
+                    frame = _assisted_capture(camera, current_pose_id)
 
                     print("Detecting checkerboard in point cloud")
                     detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
@@ -201,7 +204,7 @@ def calibrate_hand_eye(robot_joints, robot, camera):
                 except ValueError as ex:
                     print(ex)
 
-            calibration_result = self._perform_calibration(hand_eye_input)
+            calibration_result = _perform_calibration(hand_eye_input, calibration_type)
             transform = calibration_result.transform()
             transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixAutomated.yaml")
             assert_affine_matrix_and_save(transform, transform_file_path)
@@ -238,9 +241,9 @@ def manual_calibrate_hand_eye(self, robot, camera):
             try:
                 # Sending the robot to the desired position
                 input("Press Enter when ready to add the pose")
-                robot_pose = self._enter_robot_pose(robot, current_pose_id)
+                robot_pose = _enter_robot_pose(robot, current_pose_id)
 
-                frame = self._assisted_capture(camera, current_pose_id)
+                frame = _assisted_capture(camera, current_pose_id)
 
                 print("Detecting checkerboard in point cloud")
                 detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
@@ -261,7 +264,7 @@ def manual_calibrate_hand_eye(self, robot, camera):
 
         calibrate = True
 
-    calibration_result = self._perform_calibration(hand_eye_input)
+    calibration_result = _perform_calibration(hand_eye_input)
     transform = calibration_result.transform()
     transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
     assert_affine_matrix_and_save(transform, transform_file_path)

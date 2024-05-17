@@ -5,6 +5,7 @@ from CTkToolTip import *
 class CalibrateButton(ctk.CTkButton):
     def __init__(self, parent):
         super().__init__(parent)
+        self.configure(state='disable')
         self.configure(text='Calibrate')
         self.configure(text_color='black')
         self.configure(fg_color='#ffba33')

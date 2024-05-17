@@ -1,4 +1,5 @@
 import logging
+import subprocess
 import threading
 import customtkinter as ctk
 from tkinter import ttk
@@ -172,8 +173,8 @@ class App(ctk.CTk):
 
         self.LoadFileButton = LoadFileButton(self.FrameCoords)
 
-        self.TextPoses = TextPoses(self.FrameCoords)    # Holder for the poses
-        
+        self.TextPoses = TextPoses(self.FrameCoords)  # Holder for the poses
+
         self.EtH = EyeToHand(self.Menu)
         self.EtH.place(relx=0.37, rely=0.75)
         self.EtH.configure(command=self.eth_calib_type_checkbox)
@@ -226,7 +227,32 @@ class App(ctk.CTk):
         """
         self.Thread_robot_check_connection = threading.Thread(target=self.check_robot_connection, daemon=True)
         self.Thread_camera_check_connection = threading.Thread(target=self.check_camera_connection, daemon=True)
+        # self.Thread_Ready_Calibration = multiprocessing.Process(target=self.ready_calibration, daemon=True)
+        # self.Thread_Ready_Calibration.start()
+        # self.Thread_Ready_Calibration.join()
         # self.Thread_check_button = threading.Thread(target=self.enable_check_button, daemon=True)
+
+    # def ready_calibration(self):
+    #     while True:
+    #         if self.camera and self.robot:
+    #             if self.calibration_type == 'eih' and self.auto_calib_pose_dict:
+    #                 self.CalibrateButton.configure(state="normal")
+    #                 self.CalibrateButton.configure(fg_color='#2DFE54')
+    #                 self.CalibrateButton.configure(command=self.calibrate_eye_in_hand)
+    #             elif self.calibration_type == 'eth':
+    #                 self.CalibrateButton.configure(state="normal")
+    #                 self.CalibrateButton.configure(fg_color='#2DFE54')
+    #                 self.CalibrateButton.configure(command=self.calibrate_eye_to_hand)
+
+    def calibrate_eye_in_hand(self):
+        calibrate_hand_eye(self.auto_calib_pose_dict,
+                           self.robot,
+                           self.camera,
+                           self.calibration_type)
+
+    def calibrate_eye_to_hand(self):
+        manual_calibrate_hand_eye(self.robot,
+                                  self.camera)
 
     def eih_calib_type_checkbox(self):
         if self.EiH.get() == 1:
@@ -279,26 +305,24 @@ class App(ctk.CTk):
             for i in range(len(self.file_int)):
                 self.auto_calib_pose_dict[i] = self.file_int[i]
 
+            if len(self.auto_calib_pose_dict) < 20:
+                result = messagebox.showinfo("Positions", 'The number of positions are less than '
+                                                             '20\nAre you sure you want to continue?')
+
+                    # calibrate_hand_eye(self.auto_calib_pose_dict,
+                    #                    self.robot,
+                    #                    self.camera)
+                subprocess.run(['python', 'subprocessing_whole_app.py'])
+                # else:
+                #     self.auto_calib_pose_dict = {}
+                #     print(self.auto_calib_pose_dict)
+
             print(self.auto_calib_pose_dict)
 
         except Exception as ex:
+            print(str(ex))
             messagebox.showerror("Error!", "Could not read the file correctly!")
 
-        try:
-            if self.camera and self.robot:
-                try:
-                    if self.auto_calib_pose_dict:
-                        calibrate_hand_eye(self.auto_calib_pose_dict,
-                                           self.robot,
-                                           self.camera)
-
-                except Exception as ex:
-                    messagebox.showwarning('Error!',
-                                           'Could not find poses')
-
-        except Exception as ex:
-            messagebox.showwarning("Not connected!",
-                                   "Either the camera or the robot is not connected!")
     # def enable_check_button(self):
     #     while self.camera and self.robot:
     #         self.AutoCalib_button.configure(state='normal')
@@ -306,12 +330,6 @@ class App(ctk.CTk):
 
     # self.ManualCalib_button.configure(state='disabled')
     # self.AutoCalib_button.configure(state='disabled')
-
-    # def auto_checkbox_event(self):
-    # if self.AutoCalib_button.check_var_auto.get() == 1:
-    #     self.ManualCalib_button.configure(state='disabled')
-    # else:
-    #     self.ManualCalib_button.configure(state='normal')
 
     def man_checkbox_event(self):
         if self.ManualCalib_button.check_var_manual.get() == 1:
@@ -335,9 +353,6 @@ class App(ctk.CTk):
         que = deque()
         # Call work function
         try:
-            t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
-            t1.start()
-
             # if que[0]:
             #     self.camera = que[1]
             #     self.WarmUpBlur.place_forget()
@@ -377,9 +392,6 @@ class App(ctk.CTk):
         que_rob = deque()
         # Call work function
         try:
-            t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob), daemon=True)
-            t2.start()
-
             # if que_rob[0]:
             #     self.robot = que_rob[1]
             #     self.SendRobotBlur.place_forget()
