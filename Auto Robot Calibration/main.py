@@ -607,6 +607,7 @@ class App(ctk.CTk):
         self.Coords.Entry6.insert('1.0', p)
 
         if self.ManualCalib_button.check_var_manual.get() == 1:
+            pass
             # Довърши за калибрацията
 
     def warm_up_function(self):
