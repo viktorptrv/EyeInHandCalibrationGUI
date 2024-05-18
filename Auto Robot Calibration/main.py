@@ -87,6 +87,7 @@ class App(ctk.CTk):
 
         self.calibration_type = None
 
+
         """
         Configuring Frames
         """
@@ -117,6 +118,11 @@ class App(ctk.CTk):
         self.RobTF = RobTFEntry(self.Menu)
         self.RobTF.place(relx=0.612, rely=0.005)
 
+        self.RobUF.configure(fg_color='#2DFE54')
+        self.RobTF.configure(fg_color='#2DFE54')
+        self.RobIPEntry.configure(fg_color='#2DFE54')
+        self.RobPortEntry.configure(fg_color='#2DFE54')
+
         self.Coords = Coords(self.FrameCoords)
         self.Coords.place(relx=0.1, rely=0.3, relwidth=0.8, relheight=0.3)
 
@@ -136,9 +142,6 @@ class App(ctk.CTk):
 
         self.CalibrateButton = CalibrateButton(self.Menu)
         self.CalibrateButton.place(relx=0.35, rely=0.90)
-
-        # self.FrameZivid = FrameZivid(self.MenuRight)
-        # self.FrameZivid.place(relx=0.01, rely=0.2, relwidth=0.98, relheight=0.79)
 
         self.WarmUp = WarmUpButton(self.Menu)
         self.WarmUp.place(relx=0.1, rely=0.2)
@@ -222,6 +225,8 @@ class App(ctk.CTk):
 
         self.RobotButton.configure(command=self.thread_connect_robot)
 
+
+
         """
         Thread, който постоянно проверява дали има връзка с камерата/робота, след като са били свързани
         """
@@ -251,8 +256,9 @@ class App(ctk.CTk):
                            self.calibration_type)
 
     def calibrate_eye_to_hand(self):
-        manual_calibrate_hand_eye(self.robot,
-                                  self.camera)
+        # manual_calibrate_hand_eye(self.robot,
+        #                           self.camera)
+        pass
 
     def eih_calib_type_checkbox(self):
         if self.EiH.get() == 1:
@@ -306,18 +312,33 @@ class App(ctk.CTk):
                 self.auto_calib_pose_dict[i] = self.file_int[i]
 
             if len(self.auto_calib_pose_dict) < 20:
-                result = messagebox.showinfo("Positions", 'The number of positions are less than '
+                result = messagebox.askyesno("Positions", 'The number of positions are less than '
                                                              '20\nAre you sure you want to continue?')
+                print(result)
+                if result:
+                    if self.camera and self.robot:
+                        self.CalibrateButton.configure(state='normal')
+                        self.CalibrateButton.configure(fg_color='#2DFE54')
 
-                    # calibrate_hand_eye(self.auto_calib_pose_dict,
-                    #                    self.robot,
-                    #                    self.camera)
-                subprocess.run(['python', 'subprocessing_whole_app.py'])
-                # else:
-                #     self.auto_calib_pose_dict = {}
-                #     print(self.auto_calib_pose_dict)
+                else:
+                    if self.CalibrateButton.state == 'normal':
+                        self.CalibrateButton.configure(fg_color='#ffba33')
+                        self.CalibrateButton.configure(text_color='black')
+                        self.CalibrateButton.configure(state='disable')
+                    self.auto_calib_pose_dict.clear()
+                    self.file_int.clear()
+                    self.TextPoses.delete('1.0', 'end')
+                    print(self.auto_calib_pose_dict)
 
-            print(self.auto_calib_pose_dict)
+
+            """
+            add check robot camera eih/eth and enable calibration button
+            
+            """
+
+            # print(self.auto_calib_pose_dict)
+            #
+            # self.ready_calibration()
 
         except Exception as ex:
             print(str(ex))
@@ -346,13 +367,16 @@ class App(ctk.CTk):
             messagebox.showwarning("Error!", "Robot is not connected")
 
     def thread_connect_camera(self):
-        # The deque class can be used for returning values
-        # The deque class is thread safe and is iterable
-        # A deque object does not block, if the maxsize has been reached.
-        # In this case the last or first element is dropped from the list.
+        """
+        The deque class can be used for returning values
+        The deque class is thread safe and is iterable
+        A deque object does not block, if the maxsize has been reached.
+        In this case the last or first element is dropped from the list.
+        """
         que = deque()
-        # Call work function
         try:
+            t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
+            t1.start()
             # if que[0]:
             #     self.camera = que[1]
             #     self.WarmUpBlur.place_forget()
@@ -388,10 +412,97 @@ class App(ctk.CTk):
             logging.error(f"Camera Exception: {ex}")
 
     def thread_connect_robot(self):
+
         # The queue class can be used for returning values
         que_rob = deque()
         # Call work function
         try:
+            if self.RobIPEntry.get():
+                rob_ip = self.RobIPEntry.get()
+                with open('rob_config.txt') as file:
+                    file.write(f'Robot IP = {rob_ip}')
+            else:
+                try:
+                    with open('rob_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Robot IP ='):
+                                rob_ip = line.split('=')[1].strip()
+                                break
+                        if not rob_ip:
+                            messagebox.showerror('Error', 'Robot IP not found in the config file.\n'
+                                                          'Input IP')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    rob_ip = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+            if self.RobPortEntry.get():
+                rob_port = self.RobPortEntry.get()
+                with open('rob_config.txt') as file:
+                    file.write(f'Robot Port = {rob_port}')
+            else:
+                try:
+                    with open('rob_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Robot Port ='):
+                                rob_port = line.split('=')[1].strip()
+                                break
+                        if not rob_port:
+                            messagebox.showerror('Error', 'Robot Port not found in the config file.\n'
+                                                          'Input Port')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    rob_port = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+            if self.RobUF.get():
+                rob_uf = self.RobUF.get()
+                with open('rob_config.txt') as file:
+                    file.write(f'Robot UF = {rob_uf}')
+            else:
+                try:
+                    with open('rob_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Robot UF ='):
+                                rob_uf = line.split('=')[1].strip()
+                                break
+
+                        if not rob_uf:
+                            messagebox.showerror('Error', 'Robot UF not found in the config file.\n'
+                                                          'Input UF')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    rob_uf = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+
+            if self.RobTF.get():
+                rob_tf = self.RobTF.get()
+                with open('rob_config.txt') as file:
+                    file.write(f'Robot TF = {rob_tf}')
+            else:
+                try:
+
+                    with open('rob_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Robot TF ='):
+                                rob_tf = line.split('=')[1].strip()
+                                break
+                        if not rob_tf:
+                            messagebox.showerror('Error', 'Robot TF not found in the config file.\n'
+                                                          'Input TF')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    rob_uf = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+
+            t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob), daemon=True)
+            t2.start()
             # if que_rob[0]:
             #     self.robot = que_rob[1]
             #     self.SendRobotBlur.place_forget()
@@ -419,16 +530,27 @@ class App(ctk.CTk):
                                                        dark_image=Image.open('Images/robotic_arm_green.png'),
                                                        size=(80, 80)))
 
-            self.RobUF.configure(fg_color='#2DFE54')
             self.RobotButton.configure(fg_color='#2DFE54')
-            self.RobTF.configure(fg_color='#2DFE54')
-            self.RobIPEntry.configure(fg_color='#2DFE54')
-            self.RobPortEntry.configure(fg_color='#2DFE54')
             self.RobotButton.configure(text="Robot Connected!")
 
         except Exception as ex:
             print(f"Robot exception: ", ex)
             logging.error(f"Robot Exception: {ex}")
+
+    def get_curposv2(self, uframe, tframe) -> list[float]:
+        """Gets current cartesian position of tool center point.
+
+        Returns:
+            list[float]: Current positions XYZWPR.
+        """
+
+        cmd = f"curpos:{uframe}:{tframe}"
+        print(cmd)
+        _, msg = self.send_cmd(cmd)
+        print(f"msg : {msg}")
+        vals = [float(val.split("=")[1]) for val in msg.split(",")]
+        print(f"Vals : {vals}")
+        return vals
 
 
 if __name__ == '__main__':

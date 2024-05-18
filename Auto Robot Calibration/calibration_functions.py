@@ -70,7 +70,7 @@ def move_robot(self, robot_fanuc, joint_coordinates):
         print(str(ex))
 
 
-def _enter_robot_pose(self, robot_fanuc, index: int) -> zivid.calibration.Pose:
+def _enter_robot_pose(robot_fanuc, index: int) -> zivid.calibration.Pose:
     """Robot pose user input.
 
     Args:
@@ -224,7 +224,7 @@ def calibrate_hand_eye(robot_joints, robot, camera, calibration_type):
         return var
 
 
-def manual_calibrate_hand_eye(self, robot, camera):
+def manual_calibrate_hand_eye(robot, camera):
     if not camera:
         app = zivid.Application()
 
