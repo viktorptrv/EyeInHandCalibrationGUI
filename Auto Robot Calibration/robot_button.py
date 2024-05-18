@@ -18,12 +18,13 @@ class RobotButton(ctk.CTkButton):
         self.configure(height=40)
 
     @staticmethod
-    def connect_robot(q, is_robot_connected=None):
+    def connect_robot(q, ip, port_addr):
+        is_robot_connected = None
 
         robot_fanuc = Robot(
             robot_model="LHMROB011",
-            host="10.37.115.206",
-            port=18735,
+            host=ip,
+            port=port_addr,
             ee_DO_type="RDO",
             ee_DO_num=7)
         if not is_robot_connected:

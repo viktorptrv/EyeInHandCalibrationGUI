@@ -38,12 +38,16 @@ def _options() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def warmup() -> None:
-    user_options = _options()
-    app = zivid.Application()
+def warmup(camera) -> None:
+    try:
+        if not camera:
+            user_options = _options()
+            app = zivid.Application()
 
-    print("Connecting to camera")
-    camera = app.connect_camera()
+            print("Connecting to camera")
+            camera = app.connect_camera()
+    except Exception as ex:
+        print(str(ex))
 
     warmup_time = timedelta(minutes=10)
     capture_cycle = timedelta(seconds=user_options.capture_cycle)

@@ -1,4 +1,5 @@
 import logging
+import zivid
 import subprocess
 import threading
 import customtkinter as ctk
@@ -23,7 +24,6 @@ from take_picture_button import TakePicButton
 from warm_up import WarmUpButton
 from images import ImageCam, ImageRobot, ImageIntr, CamButtonBlur, WarmUpBlur
 from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
-from zivid_image import FrameZivid
 from entries import *
 from frame_coords import FrameCoords
 from choose_calibration import *
@@ -33,6 +33,7 @@ from text_poses import TextPoses
 from CTkToolTip import *
 from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye
 from menu_bar import MenuBar
+from zivid_functions import warmup, get_camera_intrinsics
 
 
 class SplashScreen(ctk.CTk):
@@ -78,6 +79,9 @@ class App(ctk.CTk):
         self.robot_button = None
         self.camera_button = None
 
+        self.rob_uf = None
+        self.rob_tf = None
+
         self.file_types = (('text files', '*.txt'),
                            ('All files', '*.*'))
 
@@ -102,9 +106,11 @@ class App(ctk.CTk):
         """
         self.CamIPEntry = CamIPEntry(self.Menu)
         self.CamIPEntry.place(relx=0.05, rely=0.05)
+        self.CamIPEntry.configure(text_color='black')
 
         self.CamPortEntry = CamPortEntry(self.Menu)
         self.CamPortEntry.place(relx=0.20, rely=0.05)
+        self.CamPortEntry.configure(text_color='black')
 
         self.RobIPEntry = RobIPEntry(self.Menu)
         self.RobIPEntry.place(relx=0.55, rely=0.05)
@@ -118,10 +124,10 @@ class App(ctk.CTk):
         self.RobTF = RobTFEntry(self.Menu)
         self.RobTF.place(relx=0.612, rely=0.005)
 
-        self.RobUF.configure(fg_color='#2DFE54')
-        self.RobTF.configure(fg_color='#2DFE54')
-        self.RobIPEntry.configure(fg_color='#2DFE54')
-        self.RobPortEntry.configure(fg_color='#2DFE54')
+        self.RobUF.configure(text_color='black')
+        self.RobTF.configure(text_color='black')
+        self.RobIPEntry.configure(text_color='black')
+        self.RobPortEntry.configure(text_color='black')
 
         self.Coords = Coords(self.FrameCoords)
         self.Coords.place(relx=0.1, rely=0.3, relwidth=0.8, relheight=0.3)
@@ -145,15 +151,18 @@ class App(ctk.CTk):
 
         self.WarmUp = WarmUpButton(self.Menu)
         self.WarmUp.place(relx=0.1, rely=0.2)
+        self.WarmUp.configure(command=self.warm_up_function)
 
         self.TakePicButton = TakePicButton(self.Menu)
         self.TakePicButton.place(relx=0.1, rely=0.3)
 
         self.IntrscsButton = IntrButton(self.Menu)
         self.IntrscsButton.place(relx=0.1, rely=0.4)
+        self.IntrscsButton.configure(command=self.cam_intr)
 
         self.CurrPose = CurrPoseButton(self.Menu)
         self.CurrPose.place(relx=0.6, rely=0.2)
+        self.CurrPose.configure(command=self.get_current_position)
 
         self.CurrJPose = CurrJPoseButton(self.Menu)
         self.CurrJPose.place(relx=0.6, rely=0.3)
@@ -375,6 +384,53 @@ class App(ctk.CTk):
         """
         que = deque()
         try:
+
+            if self.CamIPEntry.get():
+                cam_ip = self.CamIPEntry.get()
+                with open('cam_config.txt', 'a') as file:
+                    file.write(f'Camera IP = {cam_ip}\n')
+            else:
+                try:
+
+                    with open('cam_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Camera IP ='):
+                                cam_ip = line.split('=')[1].strip()
+                                break
+                        if not cam_ip:
+                            messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
+                                                          'Input IP')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    cam_ip = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+            if self.CamPortEntry.get():
+                cam_port = self.CamPortEntry.get()
+                with open('cam_config.txt', 'a') as file:
+                    file.write(f'Camera Port = {cam_port}\n')
+            else:
+                try:
+
+                    with open('cam_config.txt') as file:
+                        for line in file:
+                            if line.startswith('Camera Port ='):
+                                cam_port = line.split('=')[1].strip()
+                                self.CamPortEntry.insert('1.0', cam_port)
+                                break
+                        if not cam_port:
+                            messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
+                                                          'Input IP')
+
+                except Exception as ex:
+                    logging.error(str(ex))
+                    cam_port = None
+                    messagebox.showerror('Error', 'Check logging file for the error!')
+
+            self.CamIPEntry.configure(fg_color='#2DFE54')
+            self.CamPortEntry.configure(fg_color='#2DFE54')
+
             t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
             t1.start()
             # if que[0]:
@@ -402,8 +458,6 @@ class App(ctk.CTk):
                                                        dark_image=Image.open('Images/camera_light_green.png'),
                                                        size=(100, 100)))
 
-            self.CamIPEntry.configure(fg_color='#2DFE54')
-            self.CamPortEntry.configure(fg_color='#2DFE54')
             self.CameraButton.configure(fg_color='#2DFE54')
             self.CameraButton.configure(text="Camera Connected!")
 
@@ -419,8 +473,8 @@ class App(ctk.CTk):
         try:
             if self.RobIPEntry.get():
                 rob_ip = self.RobIPEntry.get()
-                with open('rob_config.txt') as file:
-                    file.write(f'Robot IP = {rob_ip}')
+                with open('rob_config.txt', 'a') as file:
+                    file.write(f'Robot IP = {rob_ip}\n')
             else:
                 try:
                     with open('rob_config.txt') as file:
@@ -435,12 +489,12 @@ class App(ctk.CTk):
                 except Exception as ex:
                     logging.error(str(ex))
                     rob_ip = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
+                    messagebox.showerror('Error', 'No information for robot ip')
 
             if self.RobPortEntry.get():
                 rob_port = self.RobPortEntry.get()
-                with open('rob_config.txt') as file:
-                    file.write(f'Robot Port = {rob_port}')
+                with open('rob_config.txt', 'a') as file:
+                    file.write(f'Robot Port = {rob_port}\n')
             else:
                 try:
                     with open('rob_config.txt') as file:
@@ -455,72 +509,60 @@ class App(ctk.CTk):
                 except Exception as ex:
                     logging.error(str(ex))
                     rob_port = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
+                    messagebox.showerror('Error', 'No information for robot port')
 
             if self.RobUF.get():
-                rob_uf = self.RobUF.get()
-                with open('rob_config.txt') as file:
-                    file.write(f'Robot UF = {rob_uf}')
+                self.rob_uf = self.RobUF.get()
+                with open('rob_config.txt', 'a') as file:
+                    file.write(f'Robot UF = {self.rob_uf}\n')
             else:
                 try:
                     with open('rob_config.txt') as file:
                         for line in file:
                             if line.startswith('Robot UF ='):
-                                rob_uf = line.split('=')[1].strip()
+                                self.rob_uf = line.split('=')[1].strip()
                                 break
 
-                        if not rob_uf:
+                        if not self.rob_uf:
                             messagebox.showerror('Error', 'Robot UF not found in the config file.\n'
                                                           'Input UF')
 
                 except Exception as ex:
                     logging.error(str(ex))
-                    rob_uf = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
-
+                    self.rob_uf = None
+                    messagebox.showerror('Error', 'No information for robot uf')
 
             if self.RobTF.get():
-                rob_tf = self.RobTF.get()
-                with open('rob_config.txt') as file:
-                    file.write(f'Robot TF = {rob_tf}')
+                self.rob_tf = self.RobTF.get()
+                with open('rob_config.txt', 'a') as file:
+                    file.write(f'Robot TF = {self.rob_tf}\n')
             else:
                 try:
 
                     with open('rob_config.txt') as file:
                         for line in file:
                             if line.startswith('Robot TF ='):
-                                rob_tf = line.split('=')[1].strip()
+                                self.rob_tf = line.split('=')[1].strip()
                                 break
-                        if not rob_tf:
+                        if not self.rob_tf:
                             messagebox.showerror('Error', 'Robot TF not found in the config file.\n'
                                                           'Input TF')
 
                 except Exception as ex:
                     logging.error(str(ex))
-                    rob_uf = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
+                    self.rob_tf = None
+                    messagebox.showerror('Error', 'No information for robot tf')
 
+            self.RobUF.configure(fg_color='#2DFE54')
+            self.RobTF.configure(fg_color='#2DFE54')
+            self.RobIPEntry.configure(fg_color='#2DFE54')
+            self.RobPortEntry.configure(fg_color='#2DFE54')
 
-            t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob), daemon=True)
+            t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob, rob_ip, rob_port), daemon=True)
             t2.start()
-            # if que_rob[0]:
-            #     self.robot = que_rob[1]
-            #     self.SendRobotBlur.place_forget()
-            #     self.CurrPoseBlur.place_forget()
-            #     self.CurrJPoseBlur.place_forget()
-            #     self.Thread_robot_check_connection.start()
-            #
-            #     self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
-            #                             dark_image=Image.open('Images/robotic_arm_green.png'),
-            #                             size=(80, 80)))
-            #
-            #     self.RobUF.configure(fg_color='#2DFE54')
-            #     self.RobotButton.configure(fg_color='#2DFE54')
-            #     self.RobTF.configure(fg_color='#2DFE54')
-            #     self.RobIPEntry.configure(fg_color='#2DFE54')
-            #     self.RobPortEntry.configure(fg_color='#2DFE54')
-            #     self.RobotButton.configure(text="Robot Connected!")
-
+            if que_rob[0]:
+                self.robot = que_rob[1]
+                self.robot.get_curpose = self.get_curposev2(self.rob_uf, self.rob_tf)
             self.SendRobotBlur.place_forget()
             self.CurrPoseBlur.place_forget()
             self.CurrJPoseBlur.place_forget()
@@ -537,8 +579,10 @@ class App(ctk.CTk):
             print(f"Robot exception: ", ex)
             logging.error(f"Robot Exception: {ex}")
 
-    def get_curposv2(self, uframe, tframe) -> list[float]:
-        """Gets current cartesian position of tool center point.
+    @staticmethod
+    def get_curposev2(uframe, tframe) -> list[float]:
+        """
+        Gets current cartesian position of tool center point.
 
         Returns:
             list[float]: Current positions XYZWPR.
@@ -551,6 +595,41 @@ class App(ctk.CTk):
         vals = [float(val.split("=")[1]) for val in msg.split(",")]
         print(f"Vals : {vals}")
         return vals
+
+    def get_current_position(self):
+        vals = self.robot.get_curpose()
+        x, y, z, w, r, p = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
+        self.Coords.Entry1.insert('1.0', x)
+        self.Coords.Entry2.insert('1.0', y)
+        self.Coords.Entry3.insert('1.0', z)
+        self.Coords.Entry4.insert('1.0', w)
+        self.Coords.Entry5.insert('1.0', r)
+        self.Coords.Entry6.insert('1.0', p)
+
+        if self.ManualCalib_button.check_var_manual.get() == 1:
+            # Довърши за калибрацията
+
+    def warm_up_function(self):
+        try:
+            warmup.warmup(self.camera)
+            messagebox.showinfo('Completed', "Camera Warm Up is completed!\n"
+                                             "Your camera is ready for use.")
+
+        except Exception as ex:
+            logging.error(str(ex))
+            messagebox.showerror('Error', 'Camera did not warm up!')
+
+    def cam_intr(self):
+        try:
+            get_camera_intrinsics.camera_intr(self.camera)
+            messagebox.showinfo('Completed', "Camera Intrinsics are ready!\n"
+                                             "Check the files.")
+
+        except Exception as ex:
+            logging.error(str(ex))
+            messagebox.showerror('Error', 'Could not get Intrinsics')
+
+
 
 
 if __name__ == '__main__':
