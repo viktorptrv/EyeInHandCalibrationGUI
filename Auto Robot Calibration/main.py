@@ -1,4 +1,6 @@
 import logging
+from pathlib import Path
+
 import zivid
 import subprocess
 import threading
@@ -31,9 +33,11 @@ from coordinates_widgets import Coords, JCoords
 from load_file_button import LoadFileButton
 from text_poses import TextPoses
 from CTkToolTip import *
-from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye
+from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye, _enter_robot_pose, _assisted_capture, \
+    _perform_calibration
 from menu_bar import MenuBar
 from zivid_functions import warmup, get_camera_intrinsics
+from zivid_functions.sample_utils import save_load_matrix
 
 
 class SplashScreen(ctk.CTk):
@@ -166,6 +170,7 @@ class App(ctk.CTk):
 
         self.CurrJPose = CurrJPoseButton(self.Menu)
         self.CurrJPose.place(relx=0.6, rely=0.3)
+        self.CurrPose.configure(command=self.get_currJpose)
 
         self.SendRobot = SendRobotButton(self.Menu)
         self.SendRobot.place(relx=0.6, rely=0.4)
@@ -562,7 +567,7 @@ class App(ctk.CTk):
             t2.start()
             if que_rob[0]:
                 self.robot = que_rob[1]
-                self.robot.get_curpose = self.get_curposev2(self.rob_uf, self.rob_tf)
+                self.robot.get_curpos = self.get_curposev2(self.rob_uf, self.rob_tf)
             self.SendRobotBlur.place_forget()
             self.CurrPoseBlur.place_forget()
             self.CurrJPoseBlur.place_forget()
@@ -597,14 +602,18 @@ class App(ctk.CTk):
         return vals
 
     def get_current_position(self):
-        vals = self.robot.get_curpose()
-        x, y, z, w, r, p = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
-        self.Coords.Entry1.insert('1.0', x)
-        self.Coords.Entry2.insert('1.0', y)
-        self.Coords.Entry3.insert('1.0', z)
-        self.Coords.Entry4.insert('1.0', w)
-        self.Coords.Entry5.insert('1.0', r)
-        self.Coords.Entry6.insert('1.0', p)
+        try:
+            vals = self.robot.get_curpose()
+            x, y, z, w, r, p = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
+            self.Coords.Entry1.insert('1.0', x)
+            self.Coords.Entry2.insert('1.0', y)
+            self.Coords.Entry3.insert('1.0', z)
+            self.Coords.Entry4.insert('1.0', w)
+            self.Coords.Entry5.insert('1.0', r)
+            self.Coords.Entry6.insert('1.0', p)
+
+        except Exception as ex:
+            messagebox.showerror('Error', f'{str(ex)}')
 
         if self.ManualCalib_button.check_var_manual.get() == 1:
             pass
@@ -630,6 +639,78 @@ class App(ctk.CTk):
             logging.error(str(ex))
             messagebox.showerror('Error', 'Could not get Intrinsics')
 
+    def manual_calibrate_hand_eye(self):
+        self.ManualCalib_button.check_var_manual.set(0)
+        if not self.camera:
+            app = zivid.Application()
+
+            print("Connecting to camera")
+            self.camera = app.connect_camera()
+
+        current_pose_id = 0
+        hand_eye_input = []
+        calibrate = False
+
+        while not calibrate:
+            # command = input("Enter command, p (to add robot pose) or c (to perform calibration):").strip()
+            while current_pose_id <= 20:
+                try:
+                    # Sending the robot to the desired position
+                    input("Press Enter when ready to add the pose")
+                    while True:
+                        if self.ManualCalib_button.check_var_manual.get() == 1:
+                            break
+
+                    robot_pose = _enter_robot_pose(self.robot, current_pose_id)
+
+                    frame = _assisted_capture(self.camera, current_pose_id)
+
+                    print("Detecting checkerboard in point cloud")
+                    detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
+
+                    if detection_result.valid():
+                        print("Calibration board detected")
+                        hand_eye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
+                        current_pose_id += 1
+                    else:
+                        messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
+                                                                        " board, ensure that the entire board is "
+                                                                        "in the view of the camera")
+                        # print(
+                        #     "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
+                        # )
+                except ValueError as ex:
+                    messagebox.showinfo('Error', f"The error is: {ex}")
+
+            calibrate = True
+
+        calibration_result = _perform_calibration(hand_eye_input)
+        transform = calibration_result.transform()
+        transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
+        save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
+
+        if calibration_result.valid():
+            # print("Hand-Eye calibration OK")
+            messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+            return calibration_result
+        else:
+            print("Hand-Eye calibration FAILED")
+            messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+
+    def get_currJpose(self):
+        try:
+            if self.robot:
+                vals = self.robot.get_curjpos()
+                j1, j2, j3, j4, j5, j6 = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
+                self.JCoords.Entry1.insert('1.0', j1)
+                self.JCoords.Entry2.insert('1.0', j2)
+                self.JCoords.Entry3.insert('1.0', j3)
+                self.JCoords.Entry4.insert('1.0', j4)
+                self.JCoords.Entry5.insert('1.0', j5)
+                self.JCoords.Entry6.insert('1.0', j6)
+
+        except Exception as ex:
+            messagebox.showerror('Error!', f'{str(ex)}')
 
 
 
