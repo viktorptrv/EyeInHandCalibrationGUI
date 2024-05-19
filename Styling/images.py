@@ -1,3 +1,0 @@
-import zivid
-
-print('ok')
