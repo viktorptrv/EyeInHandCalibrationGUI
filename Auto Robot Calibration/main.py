@@ -791,19 +791,24 @@ class App(ctk.CTk):
 
 
 if __name__ == '__main__':
+    def run_window():
+        splash_screen.destroy()
+
     ctk.set_appearance_mode('dark')
     ctk.set_default_color_theme('blue')
+
 
     """
     First we create the object and then we run it with mainloop.
     This way it will create all the needed widgets and run all the threads
     """
     try:
-        # splash_screen = SplashScreen()
-        # splash_screen.after(3000, run_window)
-        # splash_screen.mainloop()
-
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+        print("Ok")
+        splash_screen = SplashScreen()
+        splash_screen.after(3000, run_window)
+        splash_screen.mainloop()
+
         app = App()
         app.mainloop()
 
