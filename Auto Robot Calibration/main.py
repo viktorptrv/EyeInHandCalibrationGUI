@@ -2,13 +2,8 @@ import logging
 from pathlib import Path
 
 import zivid
-import subprocess
 import threading
-import customtkinter as ctk
-from tkinter import ttk
-
-import multiprocessing
-
+import numpy as np
 from tkinter import filedialog as fd
 from collections import deque
 from tkinter import messagebox
@@ -38,6 +33,7 @@ from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye,
 from menu_bar import MenuBar
 from zivid_functions import warmup, get_camera_intrinsics
 from zivid_functions.sample_utils import save_load_matrix
+import functions_for_calibration
 
 
 class SplashScreen(ctk.CTk):
@@ -95,6 +91,8 @@ class App(ctk.CTk):
 
         self.calibration_type = None
         self.manual_calib_label = None
+        self.current_pose_id = 0
+        self.handeye_input = []
 
         """
         Configuring Frames
@@ -249,7 +247,6 @@ class App(ctk.CTk):
         # self.Thread_Ready_Calibration.join()
         # self.Thread_check_button = threading.Thread(target=self.enable_check_button, daemon=True)
 
-
     # def ready_calibration(self):
     #     while True:
     #         if self.camera and self.robot:
@@ -261,7 +258,6 @@ class App(ctk.CTk):
     #                 self.CalibrateButton.configure(state="normal")
     #                 self.CalibrateButton.configure(fg_color='#2DFE54')
     #                 self.CalibrateButton.configure(command=self.calibrate_eye_to_hand)
-
 
     def calibrate_eye_in_hand(self):
         calibrate_hand_eye(self.auto_calib_pose_dict,
@@ -348,7 +344,6 @@ class App(ctk.CTk):
             add check robot camera eih/eth and enable calibration button
 
             """
-
 
             # print(self.auto_calib_pose_dict)
             #
@@ -634,12 +629,56 @@ class App(ctk.CTk):
             self.Coords.Entry5.insert('1.0', r)
             self.Coords.Entry6.insert('1.0', p)
 
+            if self.ManualCalib_button.check_var_manual.get() == 1:
+                if self.current_pose_id <= 20:
+                    try:
+                        matrix = functions_for_calibration.create_4x4_matrix(float(x),
+                                                                                 float(y),
+                                                                                 float(z),
+                                                                                 float(w),
+                                                                                 float(r),
+                                                                                 float(p))
+
+                        matrix_string = functions_for_calibration.matrix_to_string(matrix)
+
+                        elements = matrix_string.split(maxsplit=15)
+                        data = np.array(elements, dtype=np.float64).reshape((4, 4))
+                        robot_pose = zivid.calibration.Pose(data)
+                        print(f"The following pose was entered:\n{robot_pose}")
+
+                        with open("PosesManual.txt", 'a') as file:
+                            file.write(f"Pose with index {self.current_pose_id}: {x}, {y}, {z}, {r}, {p}, {w}")
+
+                        frame = _assisted_capture(self.camera, self.current_pose_id)
+
+                        detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
+
+                        if detection_result.valid():
+                            print("Calibration board detected")
+                            self.handeye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
+                            self.current_pose_id += 1
+                        else:
+                            messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
+                                                                            " board, ensure that the entire board is "
+                                                                            "in the view of the camera")
+
+                if self.current_pose_id == 20:
+                    calibration_result = _perform_calibration(self.handeye_input)
+                    transform = calibration_result.transform()
+                    transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
+                    save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
+
+                    if calibration_result.valid():
+                        messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+                        return calibration_result
+                    else:
+                        print("Hand-Eye calibration FAILED")
+                        messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+
         except Exception as ex:
             messagebox.showerror('Error', f'{str(ex)}')
 
-        if self.ManualCalib_button.check_var_manual.get() == 1:
-            pass
-            # Довърши за калибрацията
+
 
     def warm_up_function(self):
         try:
@@ -661,73 +700,73 @@ class App(ctk.CTk):
             logging.error(str(ex))
             messagebox.showerror('Error', 'Could not get Intrinsics')
 
-    def manual_calibrate_hand_eye(self):
-        self.ManualCalib_button.check_var_manual.set(0)
-        if not self.camera:
-            app = zivid.Application()
-
-            print("Connecting to camera")
-            self.camera = app.connect_camera()
-
-        current_pose_id = 0
-        hand_eye_input = []
-        calibrate = False
-
-        while not calibrate:
-            # command = input("Enter command, p (to add robot pose) or c (to perform calibration):").strip()
-            while current_pose_id <= 20:
-                try:
-                    # Sending the robot to the desired position
-                    input("Press Enter when ready to add the pose")
-                    while True:
-                        if self.ManualCalib_button.check_var_manual.get() == 1:
-                            break
-
-                    robot_pose = _enter_robot_pose(self.robot, current_pose_id)
-
-                    frame = _assisted_capture(self.camera, current_pose_id)
-
-                    print("Detecting checkerboard in point cloud")
-                    detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
-
-                    if detection_result.valid():
-                        print("Calibration board detected")
-                        hand_eye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
-                        current_pose_id += 1
-                    else:
-                        messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
-                                                                        " board, ensure that the entire board is "
-                                                                        "in the view of the camera")
-                        # print(
-                        #     "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
-                        # )
-                except ValueError as ex:
-                    messagebox.showinfo('Error', f"The error is: {ex}")
-
-            calibrate = True
-
-        calibration_result = _perform_calibration(hand_eye_input)
-        transform = calibration_result.transform()
-        transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
-        save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
-
-        if calibration_result.valid():
-            # print("Hand-Eye calibration OK")
-            messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
-            return calibration_result
-        else:
-            print("Hand-Eye calibration FAILED")
-            messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+    # def manual_calibrate_hand_eye(self):
+    #     self.ManualCalib_button.check_var_manual.set(0)
+    #     if not self.camera:
+    #         app = zivid.Application()
+    #
+    #         print("Connecting to camera")
+    #         self.camera = app.connect_camera()
+    #
+    #     current_pose_id = 0
+    #     hand_eye_input = []
+    #     calibrate = False
+    #
+    #     while not calibrate:
+    #         # command = input("Enter command, p (to add robot pose) or c (to perform calibration):").strip()
+    #         while current_pose_id <= 20:
+    #             try:
+    #                 # Sending the robot to the desired position
+    #                 input("Press Enter when ready to add the pose")
+    #                 while True:
+    #                     if self.ManualCalib_button.check_var_manual.get() == 1:
+    #                         break
+    #
+    #                 robot_pose = _enter_robot_pose(self.robot, current_pose_id)
+    #
+    #                 frame = _assisted_capture(self.camera, current_pose_id)
+    #
+    #                 print("Detecting checkerboard in point cloud")
+    #                 detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
+    #
+    #                 if detection_result.valid():
+    #                     print("Calibration board detected")
+    #                     hand_eye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
+    #                     current_pose_id += 1
+    #                 else:
+    #                     messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
+    #                                                                     " board, ensure that the entire board is "
+    #                                                                     "in the view of the camera")
+    #                     # print(
+    #                     #     "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
+    #                     # )
+    #             except ValueError as ex:
+    #                 messagebox.showinfo('Error', f"The error is: {ex}")
+    #
+    #         calibrate = True
+    #
+    #     calibration_result = _perform_calibration(hand_eye_input)
+    #     transform = calibration_result.transform()
+    #     transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
+    #     save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
+    #
+    #     if calibration_result.valid():
+    #         # print("Hand-Eye calibration OK")
+    #         messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+    #         return calibration_result
+    #     else:
+    #         print("Hand-Eye calibration FAILED")
+    #         messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
 
     def get_currJpose(self):
         try:
             if self.robot:
                 if (self.JCoords.Entry1 or
-                    self.JCoords.Entry2 or
-                    self.JCoords.Entry3 or
-                    self.JCoords.Entry4 or
-                    self.JCoords.Entry5 or
-                    self.JCoords.Entry6):
+                        self.JCoords.Entry2 or
+                        self.JCoords.Entry3 or
+                        self.JCoords.Entry4 or
+                        self.JCoords.Entry5 or
+                        self.JCoords.Entry6):
 
                     self.JCoords.Entry1.delete('1.0', 'end')
                     self.JCoords.Entry2.delete('1.0', 'end')
@@ -750,10 +789,6 @@ class App(ctk.CTk):
 
 
 if __name__ == '__main__':
-    def run_window():
-        splash_screen.destroy()
-
-
     ctk.set_appearance_mode('dark')
     ctk.set_default_color_theme('blue')
 
