@@ -56,7 +56,7 @@ def _assisted_capture(self, camera: zivid.Camera, current_pose) -> zivid.Frame:
     return return_ply
 
 
-def perform_calibration(self, hand_eye_input: List[zivid.calibration.HandEyeInput], calibration_type) -> zivid.calibration.HandEyeOutput:
+def perform_calibration(hand_eye_input, calibration_type) -> zivid.calibration.HandEyeOutput:
     """Hand-Eye calibration type user input.
 
     Args:
@@ -64,6 +64,7 @@ def perform_calibration(self, hand_eye_input: List[zivid.calibration.HandEyeInpu
 
     Returns:
         hand_eye_output: Hand-Eye calibration result
+        :param calibration_type:
 
     """
     while True:

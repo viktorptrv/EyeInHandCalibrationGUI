@@ -1,6 +1,5 @@
 import tkinter as tk
 import customtkinter as ctk
-# from main import App
 
 
 class FrameLeft(ctk.CTkFrame):

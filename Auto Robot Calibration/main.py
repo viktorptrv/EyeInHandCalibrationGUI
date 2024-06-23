@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import sys
 import zivid
 import threading
 import numpy as np
@@ -8,8 +9,9 @@ from tkinter import filedialog as fd
 from collections import deque
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from robot_button import RobotButton
+
 from Menu_One import FrameLeft
+from robot_button import RobotButton
 from Menu_Two import FrameRight
 from camera_button import CameraButton
 from calibrate_button import CalibrateButton
@@ -28,12 +30,13 @@ from coordinates_widgets import Coords, JCoords
 from load_file_button import LoadFileButton
 from text_poses import TextPoses
 from CTkToolTip import *
-from calibration_functions import calibrate_hand_eye, manual_calibrate_hand_eye, _enter_robot_pose, _assisted_capture, \
+from calibration_functions import calibrate_hand_eye, _assisted_capture, \
     _perform_calibration
 from menu_bar import MenuBar
 from zivid_functions import warmup, get_camera_intrinsics
 from zivid_functions.sample_utils import save_load_matrix
 import functions_for_calibration
+import subprocess
 
 
 class SplashScreen(ctk.CTk):
@@ -349,8 +352,8 @@ class App(ctk.CTk):
             #
             # self.ready_calibration()
 
-        except Exception as ex:
-            print(str(ex))
+        except Exception as exceptionmsg:
+            print(str(exceptionmsg))
             messagebox.showerror("Error!", "Could not read the file correctly!")
 
     # def enable_check_button(self):
@@ -410,8 +413,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
                                                           'Input IP')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     cam_ip = None
                     messagebox.showerror('Error', 'Check logging file for the error!')
 
@@ -432,8 +435,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
                                                           'Input IP')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     cam_port = None
                     messagebox.showerror('Error', 'Check logging file for the error!')
 
@@ -470,9 +473,9 @@ class App(ctk.CTk):
             self.CameraButton.configure(fg_color='#2DFE54')
             self.CameraButton.configure(text="Camera Connected!")
 
-        except Exception as ex:
-            print(f"Camera exception: {ex}")
-            logging.error(f"Camera Exception: {ex}")
+        except Exception as exceptionmsg:
+            print(f"Camera exception: {exceptionmsg}")
+            logging.error(f"Camera Exception: {exceptionmsg}")
 
     def thread_connect_robot(self):
 
@@ -495,8 +498,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Robot IP not found in the config file.\n'
                                                           'Input IP')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     rob_ip = None
                     messagebox.showerror('Error', 'No information for robot ip')
 
@@ -515,8 +518,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Robot Port not found in the config file.\n'
                                                           'Input Port')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     rob_port = None
                     messagebox.showerror('Error', 'No information for robot port')
 
@@ -536,8 +539,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Robot UF not found in the config file.\n'
                                                           'Input UF')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     self.rob_uf = None
                     messagebox.showerror('Error', 'No information for robot uf')
 
@@ -557,8 +560,8 @@ class App(ctk.CTk):
                             messagebox.showerror('Error', 'Robot TF not found in the config file.\n'
                                                           'Input TF')
 
-                except Exception as ex:
-                    logging.error(str(ex))
+                except Exception as exceptionmsg:
+                    logging.error(str(exceptionmsg))
                     self.rob_tf = None
                     messagebox.showerror('Error', 'No information for robot tf')
 
@@ -584,9 +587,9 @@ class App(ctk.CTk):
             self.RobotButton.configure(fg_color='#2DFE54')
             self.RobotButton.configure(text="Robot Connected!")
 
-        except Exception as ex:
-            print(f"Robot exception: ", ex)
-            logging.error(f"Robot Exception: {ex}")
+        except Exception as exceptionmsg:
+            print(f"Robot exception: ", exceptionmsg)
+            logging.error(f"Robot Exception: {exceptionmsg}")
 
     @staticmethod
     def get_curposev2(uframe, tframe) -> list[float]:
@@ -633,11 +636,11 @@ class App(ctk.CTk):
                 if self.current_pose_id <= 20:
                     try:
                         matrix = functions_for_calibration.create_4x4_matrix(float(x),
-                                                                                 float(y),
-                                                                                 float(z),
-                                                                                 float(w),
-                                                                                 float(r),
-                                                                                 float(p))
+                                                                             float(y),
+                                                                             float(z),
+                                                                             float(w),
+                                                                             float(r),
+                                                                             float(p))
 
                         matrix_string = functions_for_calibration.matrix_to_string(matrix)
 
@@ -661,9 +664,11 @@ class App(ctk.CTk):
                             messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
                                                                             " board, ensure that the entire board is "
                                                                             "in the view of the camera")
+                    except Exception as exceptionmsg:
+                        messagebox.showinfo('Error', "Failed to add pose")
 
                 if self.current_pose_id == 20:
-                    calibration_result = _perform_calibration(self.handeye_input)
+                    calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
                     transform = calibration_result.transform()
                     transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
                     save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
@@ -675,10 +680,8 @@ class App(ctk.CTk):
                         print("Hand-Eye calibration FAILED")
                         messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
 
-        except Exception as ex:
-            messagebox.showerror('Error', f'{str(ex)}')
-
-
+        except Exception as exceptionmsg:
+            messagebox.showerror('Error', f'{str(exceptionmsg)}')
 
     def warm_up_function(self):
         try:
@@ -686,8 +689,8 @@ class App(ctk.CTk):
             messagebox.showinfo('Completed', "Camera Warm Up is completed!\n"
                                              "Your camera is ready for use.")
 
-        except Exception as ex:
-            logging.error(str(ex))
+        except Exception as exceptionmsg:
+            logging.error(str(exceptionmsg))
             messagebox.showerror('Error', 'Camera did not warm up!')
 
     def cam_intr(self):
@@ -696,8 +699,8 @@ class App(ctk.CTk):
             messagebox.showinfo('Completed', "Camera Intrinsics are ready!\n"
                                              "Check the files.")
 
-        except Exception as ex:
-            logging.error(str(ex))
+        except Exception as exceptionmsg:
+            logging.error(str(exceptionmsg))
             messagebox.showerror('Error', 'Could not get Intrinsics')
 
     # def manual_calibrate_hand_eye(self):
@@ -767,7 +770,6 @@ class App(ctk.CTk):
                         self.JCoords.Entry4 or
                         self.JCoords.Entry5 or
                         self.JCoords.Entry6):
-
                     self.JCoords.Entry1.delete('1.0', 'end')
                     self.JCoords.Entry2.delete('1.0', 'end')
                     self.JCoords.Entry3.delete('1.0', 'end')
@@ -784,8 +786,8 @@ class App(ctk.CTk):
                 self.JCoords.Entry5.insert('1.0', j5)
                 self.JCoords.Entry6.insert('1.0', j6)
 
-        except Exception as ex:
-            messagebox.showerror('Error!', f'{str(ex)}')
+        except Exception as exceptionmsg:
+            messagebox.showerror('Error!', f'{str(exceptionmsg)}')
 
 
 if __name__ == '__main__':
@@ -801,6 +803,7 @@ if __name__ == '__main__':
         # splash_screen.after(3000, run_window)
         # splash_screen.mainloop()
 
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
         app = App()
         app.mainloop()
 
