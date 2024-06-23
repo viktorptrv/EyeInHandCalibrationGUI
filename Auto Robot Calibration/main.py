@@ -95,7 +95,6 @@ class App(ctk.CTk):
 
         self.calibration_type = None
 
-
         """
         Configuring Frames
         """
@@ -239,8 +238,6 @@ class App(ctk.CTk):
 
         self.RobotButton.configure(command=self.thread_connect_robot)
 
-
-
         """
         Thread, който постоянно проверява дали има връзка с камерата/робота, след като са били свързани
         """
@@ -250,6 +247,7 @@ class App(ctk.CTk):
         # self.Thread_Ready_Calibration.start()
         # self.Thread_Ready_Calibration.join()
         # self.Thread_check_button = threading.Thread(target=self.enable_check_button, daemon=True)
+
 
     # def ready_calibration(self):
     #     while True:
@@ -262,6 +260,7 @@ class App(ctk.CTk):
     #                 self.CalibrateButton.configure(state="normal")
     #                 self.CalibrateButton.configure(fg_color='#2DFE54')
     #                 self.CalibrateButton.configure(command=self.calibrate_eye_to_hand)
+
 
     def calibrate_eye_in_hand(self):
         calibrate_hand_eye(self.auto_calib_pose_dict,
@@ -327,7 +326,7 @@ class App(ctk.CTk):
 
             if len(self.auto_calib_pose_dict) < 20:
                 result = messagebox.askyesno("Positions", 'The number of positions are less than '
-                                                             '20\nAre you sure you want to continue?')
+                                                          '20\nAre you sure you want to continue?')
                 print(result)
                 if result:
                     if self.camera and self.robot:
@@ -344,11 +343,11 @@ class App(ctk.CTk):
                     self.TextPoses.delete('1.0', 'end')
                     print(self.auto_calib_pose_dict)
 
-
             """
             add check robot camera eih/eth and enable calibration button
-            
+
             """
+
 
             # print(self.auto_calib_pose_dict)
             #
@@ -603,6 +602,19 @@ class App(ctk.CTk):
 
     def get_current_position(self):
         try:
+            if (self.Coords.Entry1 or
+                    self.Coords.Entry2 or
+                    self.Coords.Entry3 or
+                    self.Coords.Entry4 or
+                    self.Coords.Entry5 or
+                    self.Coords.Entry6 or):
+                self.Coords.Entry1.delete('1.0', 'end')
+                self.Coords.Entry2.delete('1.0', 'end')
+                self.Coords.Entry3.delete('1.0', 'end')
+                self.Coords.Entry4.delete('1.0', 'end')
+                self.Coords.Entry5.delete('1.0', 'end')
+                self.Coords.Entry6.delete('1.0', 'end')
+
             vals = self.robot.get_curpose()
             x, y, z, w, r, p = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
             self.Coords.Entry1.insert('1.0', x)
@@ -700,6 +712,20 @@ class App(ctk.CTk):
     def get_currJpose(self):
         try:
             if self.robot:
+                if (self.JCoords.Entry1 or
+                    self.JCoords.Entry2 or
+                    self.JCoords.Entry3 or
+                    self.JCoords.Entry4 or
+                    self.JCoords.Entry5 or
+                    self.JCoords.Entry6 or):
+
+                    self.JCoords.Entry1.delete('1.0', 'end')
+                    self.JCoords.Entry2.delete('1.0', 'end')
+                    self.JCoords.Entry3.delete('1.0', 'end')
+                    self.JCoords.Entry4.delete('1.0', 'end')
+                    self.JCoords.Entry5.delete('1.0', 'end')
+                    self.JCoords.Entry6.delete('1.0', 'end')
+
                 vals = self.robot.get_curjpos()
                 j1, j2, j3, j4, j5, j6 = vals[0], vals[2], vals[3], vals[4], vals[5], vals[6]
                 self.JCoords.Entry1.insert('1.0', j1)
@@ -711,7 +737,6 @@ class App(ctk.CTk):
 
         except Exception as ex:
             messagebox.showerror('Error!', f'{str(ex)}')
-
 
 
 if __name__ == '__main__':
