@@ -387,6 +387,27 @@ class App(ctk.CTk):
         if not self.robot:
             messagebox.showwarning("Error!", "Robot is not connected")
 
+    def connect_to_camera(self):
+        t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
+        t1.start()
+        if que[0]:
+            self.camera = que[1]
+            self.WarmUpBlur.place_forget()
+            self.ImageIntr.place_forget()
+            self.CamButtonBlur.place_forget()
+            self.Thread_camera_check_connection.start()
+
+            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+                                                       dark_image=Image.open('Images/camera_light_green.png'),
+                                                       size=(100, 100)))
+
+            self.CamIPEntry.configure(fg_color='#2DFE54')
+            self.CamPortEntry.configure(fg_color='#2DFE54')
+            self.CameraButton.configure(fg_color='#2DFE54')
+            self.CameraButton.configure(text="Camera Connected!")
+            self.CamIPEntry.configure(fg_color='#2DFE54')
+            self.CamPortEntry.configure(fg_color='#2DFE54')
+
     def thread_connect_camera(self):
         """
         The deque class can be used for returning values
@@ -396,6 +417,11 @@ class App(ctk.CTk):
         """
         que = deque()
         try:
+            if not(self.CamIPEntry.get() and self.CamPortEntry.get()):
+                question = messagebox.askyesno("Continue?", "There was no IP or Port input. Is the camera\n"
+                                                 "in the same network as the PC?")
+                if question == 'yes':
+                    self.connect_to_camera()
 
             if self.CamIPEntry.get():
                 cam_ip = self.CamIPEntry.get()
@@ -403,7 +429,6 @@ class App(ctk.CTk):
                     file.write(f'Camera IP = {cam_ip}\n')
             else:
                 try:
-
                     with open('cam_config.txt') as file:
                         for line in file:
                             if line.startswith('Camera IP ='):
@@ -440,26 +465,7 @@ class App(ctk.CTk):
                     cam_port = None
                     messagebox.showerror('Error', 'Check logging file for the error!')
 
-            self.CamIPEntry.configure(fg_color='#2DFE54')
-            self.CamPortEntry.configure(fg_color='#2DFE54')
 
-            t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
-            t1.start()
-            if que[0]:
-                self.camera = que[1]
-                self.WarmUpBlur.place_forget()
-                self.ImageIntr.place_forget()
-                self.CamButtonBlur.place_forget()
-                self.Thread_camera_check_connection.start()
-
-                self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-                                        dark_image=Image.open('Images/camera_light_green.png'),
-                                        size=(100, 100)))
-
-                self.CamIPEntry.configure(fg_color='#2DFE54')
-                self.CamPortEntry.configure(fg_color='#2DFE54')
-                self.CameraButton.configure(fg_color='#2DFE54')
-                self.CameraButton.configure(text="Camera Connected!")
 
             # self.WarmUpBlur.place_forget()
             # self.ImageIntr.place_forget()
@@ -803,8 +809,7 @@ if __name__ == '__main__':
     This way it will create all the needed widgets and run all the threads
     """
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-        print("Ok")
+        logging.basicConfig(filename="logging_file.log", level=logging.INFO)
         splash_screen = SplashScreen()
         splash_screen.after(3000, run_window)
         splash_screen.mainloop()
