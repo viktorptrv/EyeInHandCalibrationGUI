@@ -681,7 +681,7 @@ class App(ctk.CTk):
 
                     if calibration_result.valid():
                         messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
-                        return calibration_result
+                        os.system(f"notepad.exe {transform_file_path}")
                     else:
                         print("Hand-Eye calibration FAILED")
                         messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
