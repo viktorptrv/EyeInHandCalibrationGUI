@@ -445,33 +445,33 @@ class App(ctk.CTk):
 
             t1 = threading.Thread(target=self.CameraButton.connect_camera(que))
             t1.start()
-            # if que[0]:
-            #     self.camera = que[1]
-            #     self.WarmUpBlur.place_forget()
-            #     self.ImageIntr.place_forget()
-            #     self.CamButtonBlur.place_forget()
-            #     self.Thread_camera_check_connection.start()
+            if que[0]:
+                self.camera = que[1]
+                self.WarmUpBlur.place_forget()
+                self.ImageIntr.place_forget()
+                self.CamButtonBlur.place_forget()
+                self.Thread_camera_check_connection.start()
+
+                self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+                                        dark_image=Image.open('Images/camera_light_green.png'),
+                                        size=(100, 100)))
+
+                self.CamIPEntry.configure(fg_color='#2DFE54')
+                self.CamPortEntry.configure(fg_color='#2DFE54')
+                self.CameraButton.configure(fg_color='#2DFE54')
+                self.CameraButton.configure(text="Camera Connected!")
+
+            # self.WarmUpBlur.place_forget()
+            # self.ImageIntr.place_forget()
+            # self.CamButtonBlur.place_forget()
+            # self.Thread_camera_check_connection.start()
             #
-            #     self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-            #                             dark_image=Image.open('Images/camera_light_green.png'),
-            #                             size=(100, 100)))
+            # self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+            #                                            dark_image=Image.open('Images/camera_light_green.png'),
+            #                                            size=(100, 100)))
             #
-            #     self.CamIPEntry.configure(fg_color='#2DFE54')
-            #     self.CamPortEntry.configure(fg_color='#2DFE54')
-            #     self.CameraButton.configure(fg_color='#2DFE54')
-            #     self.CameraButton.configure(text="Camera Connected!")
-
-            self.WarmUpBlur.place_forget()
-            self.ImageIntr.place_forget()
-            self.CamButtonBlur.place_forget()
-            self.Thread_camera_check_connection.start()
-
-            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-                                                       dark_image=Image.open('Images/camera_light_green.png'),
-                                                       size=(100, 100)))
-
-            self.CameraButton.configure(fg_color='#2DFE54')
-            self.CameraButton.configure(text="Camera Connected!")
+            # self.CameraButton.configure(fg_color='#2DFE54')
+            # self.CameraButton.configure(text="Camera Connected!")
 
         except Exception as exceptionmsg:
             print(f"Camera exception: {exceptionmsg}")
@@ -565,27 +565,27 @@ class App(ctk.CTk):
                     self.rob_tf = None
                     messagebox.showerror('Error', 'No information for robot tf')
 
-            self.RobUF.configure(fg_color='#2DFE54')
-            self.RobTF.configure(fg_color='#2DFE54')
-            self.RobIPEntry.configure(fg_color='#2DFE54')
-            self.RobPortEntry.configure(fg_color='#2DFE54')
-
             t2 = threading.Thread(target=self.RobotButton.connect_robot(que_rob, rob_ip, rob_port), daemon=True)
             t2.start()
             if que_rob[0]:
                 self.robot = que_rob[1]
                 self.robot.get_curpos = self.get_curposev2(self.rob_uf, self.rob_tf)
-            self.SendRobotBlur.place_forget()
-            self.CurrPoseBlur.place_forget()
-            self.CurrJPoseBlur.place_forget()
-            self.Thread_robot_check_connection.start()
+                self.SendRobotBlur.place_forget()
+                self.CurrPoseBlur.place_forget()
+                self.CurrJPoseBlur.place_forget()
+                self.Thread_robot_check_connection.start()
 
-            self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
-                                                       dark_image=Image.open('Images/robotic_arm_green.png'),
-                                                       size=(80, 80)))
+                self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
+                                                           dark_image=Image.open('Images/robotic_arm_green.png'),
+                                                           size=(80, 80)))
 
-            self.RobotButton.configure(fg_color='#2DFE54')
-            self.RobotButton.configure(text="Robot Connected!")
+                self.RobotButton.configure(fg_color='#2DFE54')
+                self.RobotButton.configure(text="Robot Connected!")
+
+                self.RobUF.configure(fg_color='#2DFE54')
+                self.RobTF.configure(fg_color='#2DFE54')
+                self.RobIPEntry.configure(fg_color='#2DFE54')
+                self.RobPortEntry.configure(fg_color='#2DFE54')
 
         except Exception as exceptionmsg:
             print(f"Robot exception: ", exceptionmsg)
