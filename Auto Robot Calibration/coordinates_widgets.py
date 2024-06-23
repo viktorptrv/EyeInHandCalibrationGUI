@@ -70,7 +70,9 @@ class JCoords(ctk.CTkFrame):
         self.Entry6 = ctk.CTkEntry(master=self,
                                    placeholder_text='J6=',
                                    width=60)
+        self.place_widget()
 
+    def place_widget(self):
         self.Entry1.place(relx=0.05, rely=0.1)
         self.Entry2.place(relx=0.2, rely=0.1)
         self.Entry3.place(relx=0.35, rely=0.1)
