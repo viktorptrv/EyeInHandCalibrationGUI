@@ -94,6 +94,7 @@ class App(ctk.CTk):
         self.file_int = []
 
         self.calibration_type = None
+        self.manual_calib_label = None
 
         """
         Configuring Frames
@@ -368,8 +369,17 @@ class App(ctk.CTk):
     def man_checkbox_event(self):
         if self.ManualCalib_button.check_var_manual.get() == 1:
             self.AutoCalib_button.configure(state='disabled')
+
+            self.JCoords.forget_widgets()
+
+            self.manual_calib_label = ctk.CTkLabel(master=self.JCoords,
+                                                   text='Press Current Pose button.')
+            self.manual_calib_label.place(relx=0.33, rely=0.1)
         else:
             self.AutoCalib_button.configure(state='normal')
+            if self.manual_calib_label:
+                self.manual_calib_label.place_forget()
+                self.JCoords.place_widget()
 
     def check_camera_connection(self):
         if not self.camera:
@@ -607,7 +617,7 @@ class App(ctk.CTk):
                     self.Coords.Entry3 or
                     self.Coords.Entry4 or
                     self.Coords.Entry5 or
-                    self.Coords.Entry6 or):
+                    self.Coords.Entry6):
                 self.Coords.Entry1.delete('1.0', 'end')
                 self.Coords.Entry2.delete('1.0', 'end')
                 self.Coords.Entry3.delete('1.0', 'end')
@@ -717,7 +727,7 @@ class App(ctk.CTk):
                     self.JCoords.Entry3 or
                     self.JCoords.Entry4 or
                     self.JCoords.Entry5 or
-                    self.JCoords.Entry6 or):
+                    self.JCoords.Entry6):
 
                     self.JCoords.Entry1.delete('1.0', 'end')
                     self.JCoords.Entry2.delete('1.0', 'end')

@@ -80,4 +80,12 @@ class JCoords(ctk.CTkFrame):
         self.Entry5.place(relx=0.65, rely=0.1)
         self.Entry6.place(relx=0.8, rely=0.1)
 
+    def forget_widgets(self):
+        self.Entry1.place_forget()
+        self.Entry2.place_forget()
+        self.Entry3.place_forget()
+        self.Entry4.place_forget()
+        self.Entry5.place_forget()
+        self.Entry6.place_forget()
+
 
