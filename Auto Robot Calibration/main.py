@@ -762,9 +762,9 @@ if __name__ == '__main__':
     This way it will create all the needed widgets and run all the threads
     """
     try:
-        splash_screen = SplashScreen()
-        splash_screen.after(3000, run_window)
-        splash_screen.mainloop()
+        # splash_screen = SplashScreen()
+        # splash_screen.after(3000, run_window)
+        # splash_screen.mainloop()
 
         app = App()
         app.mainloop()
