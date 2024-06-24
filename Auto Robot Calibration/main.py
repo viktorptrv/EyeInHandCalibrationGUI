@@ -13,7 +13,6 @@ from PIL import Image, ImageTk
 
 from Menu_One import FrameLeft
 from robot_button import RobotButton
-from Menu_Two import FrameRight
 from camera_button import CameraButton
 from calibrate_button import CalibrateButton
 from current_pose import CurrPoseButton
@@ -37,7 +36,7 @@ from menu_bar import MenuBar
 from zivid_functions import warmup, get_camera_intrinsics
 from zivid_functions.sample_utils import save_load_matrix
 import functions_for_calibration
-import subprocess
+
 
 
 class SplashScreen(ctk.CTk):
@@ -345,6 +344,8 @@ class App(ctk.CTk):
                     self.TextPoses.delete('1.0', 'end')
                     print(self.auto_calib_pose_dict)
 
+        except Exception as ex:
+            print(str(ex))
 
     # def enable_check_button(self):
     #     while self.camera and self.robot:
@@ -387,8 +388,8 @@ class App(ctk.CTk):
             self.CamButtonBlur.place_forget()
             self.Thread_camera_check_connection.start()
 
-            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-                                                       dark_image=Image.open('Images/camera_light_green.png'),
+            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera-green.png'),
+                                                       dark_image=Image.open('Images/camera-green.png'),
                                                        size=(100, 100)))
 
             self.CamIPEntry.configure(fg_color='#2DFE54')
@@ -397,6 +398,9 @@ class App(ctk.CTk):
             self.CameraButton.configure(text="Camera Connected!")
             self.CamIPEntry.configure(fg_color='#2DFE54')
             self.CamPortEntry.configure(fg_color='#2DFE54')
+
+
+
 
     def thread_connect_camera(self):
         """
@@ -582,6 +586,25 @@ class App(ctk.CTk):
                 self.RobTF.configure(fg_color='#2DFE54')
                 self.RobIPEntry.configure(fg_color='#2DFE54')
                 self.RobPortEntry.configure(fg_color='#2DFE54')
+
+            # self.SendRobotBlur.place_forget()
+            # self.CurrPoseBlur.place_forget()
+            # self.CurrJPoseBlur.place_forget()
+            # self.Thread_robot_check_connection.start()
+            #
+            # self.ImageRob.configure(image=ctk.CTkImage(light_image=Image.open('Images/robotic_arm_green.png'),
+            #                                            dark_image=Image.open('Images/robotic_arm_green.png'),
+            #                                            size=(80, 80)))
+            #
+            # self.RobotButton.configure(fg_color='#2DFE54')
+            # self.RobotButton.configure(text="Robot Connected!")
+            #
+            # self.RobUF.configure(fg_color='#2DFE54')
+            # self.RobTF.configure(fg_color='#2DFE54')
+            # self.RobIPEntry.configure(fg_color='#2DFE54')
+            # self.RobPortEntry.configure(fg_color='#2DFE54')
+
+
 
         except Exception as exceptionmsg:
             print(f"Robot exception: ", exceptionmsg)
@@ -813,8 +836,6 @@ class App(ctk.CTk):
             )
         except Exception as ex:
             messagebox.showerror("Error", "There is a problem with moving your robot!")
-
-
 
     def manual_calibration(self):
         try:
