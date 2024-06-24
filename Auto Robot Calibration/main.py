@@ -345,7 +345,8 @@ class App(ctk.CTk):
                     self.TextPoses.delete('1.0', 'end')
                     print(self.auto_calib_pose_dict)
 
-
+        except Exception as ex:
+                printf(str(ex))
     # def enable_check_button(self):
     #     while self.camera and self.robot:
     #         self.AutoCalib_button.configure(state='normal')
