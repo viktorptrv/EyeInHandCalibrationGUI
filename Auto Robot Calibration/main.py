@@ -37,6 +37,7 @@ from menu_bar import MenuBar
 from zivid_functions import warmup, get_camera_intrinsics
 from zivid_functions.sample_utils import save_load_matrix
 import functions_for_calibration
+from robodk_button import RobodkButton
 import subprocess
 
 
@@ -153,7 +154,7 @@ class App(ctk.CTk):
         self.CameraButton.place(relx=0.05, rely=0.1)
 
         self.CalibrateButton = CalibrateButton(self.Menu)
-        self.CalibrateButton.place(relx=0.35, rely=0.90)
+        self.CalibrateButton.place(relx=0.2, rely=0.90)
         self.CalibrateButton.configure(command=self.start_calibration)
 
         self.WarmUp = WarmUpButton(self.Menu)
@@ -186,7 +187,7 @@ class App(ctk.CTk):
         self.AutoCalib_button.configure(command=self.import_file_with_poses)
 
         self.ManualCalib_button = ManualCalibrate(self.FrameCoords)
-        self.ManualCalib_button.place(relx=0.6, rely=0.05)
+        self.ManualCalib_button.place(relx=0.55, rely=0.05)
         self.ManualCalib_button.configure(command=self.man_checkbox_event)
         # self.ManualCalib_button.configure(state='disabled')
         self.ManualCalib_button.configure(state='normal')
@@ -202,6 +203,12 @@ class App(ctk.CTk):
         self.EiH = EyeInHand(self.Menu)
         self.EiH.place(relx=0.37, rely=0.8)
         self.EiH.configure(command=self.eih_calib_type_checkbox)
+
+        self.RoboDk = RobodkButton(self.Menu)
+        self.RoboDk.place(relx=0.5, rely=0.90)
+        self.RoboDk.configure(state='disable')
+        self.RoboDk.configure(command=self.run_robodk_sim)
+
 
         """
         adding images to the GUI
@@ -314,12 +321,18 @@ class App(ctk.CTk):
 
             file_read = file.readlines()
 
+            # for i in range(len(file_read)):
+            #     line = file_read[i].split(', ')
+            #     last_index = line.pop(-1).strip('\n')
+            #     self.file_int.append([float(i) for i in line])
+            #     self.file_int[i].append(float(last_index))
+            #     print(self.file_int)
+
             for i in range(len(file_read)):
                 line = file_read[i].split(', ')
                 last_index = line.pop(-1).strip('\n')
-                self.file_int.append([float(i) for i in line])
+                self.file_int.append([float(num) for num in line])
                 self.file_int[i].append(float(last_index))
-                print(self.file_int)
 
             self.TextPoses.insert('1.0', file_read)
 
@@ -331,6 +344,10 @@ class App(ctk.CTk):
                                                           '20\nAre you sure you want to continue?')
                 print(result)
                 if result:
+
+                    self.RoboDk.configure(state='normal')
+                    self.RoboDk.configure(fg_color='#2DFE54')
+
                     if self.camera and self.robot:
                         self.CalibrateButton.configure(state='normal')
                         self.CalibrateButton.configure(fg_color='#2DFE54')
@@ -355,6 +372,11 @@ class App(ctk.CTk):
 
     # self.ManualCalib_button.configure(state='disabled')
     # self.AutoCalib_button.configure(state='disabled')
+
+    def run_robodk_sim(self):
+        self.RoboDk.simulation(self.auto_calib_pose_dict)
+
+
 
     def man_checkbox_event(self):
         if self.ManualCalib_button.check_var_manual.get() == 1:
@@ -815,8 +837,6 @@ class App(ctk.CTk):
             )
         except Exception as ex:
             messagebox.showerror("Error", "There is a problem with moving your robot!")
-
-
 
     def manual_calibration(self):
         try:
