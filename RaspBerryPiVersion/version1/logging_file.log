@@ -1,0 +1,22 @@
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:Robot Exception: [Errno 2] No such file or directory: 'Images/robotic_arm_green.png'
+ERROR:root:Robot Exception: [Errno 2] No such file or directory: 'Images/robotic_arm_green.png'
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:Window exception: '_tkinter.tkapp' object has no attribute 'thread_connect_camera'
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
+ERROR:root:Camera Exception: [Errno 2] No such file or directory: 'Images/camera_light_green.png'
+ERROR:root:cannot access local variable 'cam_ip' where it is not associated with a value
+ERROR:root:cannot access local variable 'cam_port' where it is not associated with a value
