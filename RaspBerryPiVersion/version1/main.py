@@ -1,44 +1,40 @@
 import logging
 import os
-from pathlib import Path
-
-import sys
-import zivid
 import threading
-import numpy as np
-from tkinter import filedialog as fd
 from collections import deque
+from pathlib import Path
+from tkinter import filedialog as fd
 from tkinter import messagebox
-from PIL import Image, ImageTk
 
-from Menu_One import FrameLeft
-from robot_button import RobotButton
-from Menu_Two import FrameRight
-from camera_button import CameraButton
-from calibrate_button import CalibrateButton
-from current_pose import CurrPoseButton
-from curr_j_pose import CurrJPoseButton
+import numpy as np
+import zivid
+from PIL import Image
+
+import functions_for_calibration
 from Intrinsics import IntrButton
-from send_robot import SendRobotButton
-from take_picture_button import TakePicButton
-from warm_up import WarmUpButton
-from images import ImageCam, ImageRobot, ImageIntr, CamButtonBlur, WarmUpBlur
-from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
-from entries import *
-from frame_coords import FrameCoords
-from choose_calibration import *
-from coordinates_widgets import Coords, JCoords
-from load_file_button import LoadFileButton
-from text_poses import TextPoses
-from CTkToolTip import *
+from Menu_One import FrameLeft
+from calibrate_button import CalibrateButton
 from calibration_functions import calibrate_hand_eye, _assisted_capture, \
     _perform_calibration
+from camera_button import CameraButton
+from choose_calibration import *
+from coordinates_widgets import Coords, JCoords
+from curr_j_pose import CurrJPoseButton
+from current_pose import CurrPoseButton
+from entries import *
+from frame_coords import FrameCoords
+from images import CurrPoseBlur, CurrJPoseBlur, SendRobotBlur
+from images import ImageCam, ImageRobot, ImageIntr, CamButtonBlur, WarmUpBlur
+from load_file_button import LoadFileButton
 from menu_bar import MenuBar
+from robodk_button import RobodkButton
+from robot_button import RobotButton
+from send_robot import SendRobotButton
+from take_picture_button import TakePicButton
+from text_poses import TextPoses
+from warm_up import WarmUpButton
 from zivid_functions import warmup, get_camera_intrinsics
 from zivid_functions.sample_utils import save_load_matrix
-import functions_for_calibration
-from robodk_button import RobodkButton
-import subprocess
 
 
 class SplashScreen(ctk.CTk):
@@ -159,14 +155,14 @@ class App(ctk.CTk):
 
         self.WarmUp = WarmUpButton(self.Menu)
         self.WarmUp.place(relx=0.1, rely=0.2)
-        self.WarmUp.configure(command=self.warm_up_function)
+        # self.WarmUp.configure(command=self.warm_up_function)
 
         self.TakePicButton = TakePicButton(self.Menu)
         self.TakePicButton.place(relx=0.1, rely=0.3)
 
         self.IntrscsButton = IntrButton(self.Menu)
         self.IntrscsButton.place(relx=0.1, rely=0.4)
-        self.IntrscsButton.configure(command=self.cam_intr)
+        # self.IntrscsButton.configure(command=self.cam_intr)
 
         self.CurrPose = CurrPoseButton(self.Menu)
         self.CurrPose.place(relx=0.6, rely=0.2)
@@ -402,87 +398,89 @@ class App(ctk.CTk):
             messagebox.showwarning("Error!", "Robot is not connected")
 
     def connect_to_camera(self, que):
-        que_return = CameraButton.connect_camera(que)
-
-        if que_return[0]:
-            self.camera = que_return[1]
-            self.WarmUpBlur.place_forget()
-            self.ImageIntr.place_forget()
-            self.CamButtonBlur.place_forget()
-            self.Thread_camera_check_connection.start()
-
-            self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
-                                                       dark_image=Image.open('Images/camera_light_green.png'),
-                                                       size=(100, 100)))
-
-            self.CamIPEntry.configure(fg_color='#2DFE54')
-            self.CamPortEntry.configure(fg_color='#2DFE54')
-            self.CameraButton.configure(fg_color='#2DFE54')
-            self.CameraButton.configure(text="Camera Connected!")
-            self.CamIPEntry.configure(fg_color='#2DFE54')
-            self.CamPortEntry.configure(fg_color='#2DFE54')
+        pass
+        # que_return = CameraButton.connect_camera(que)
+        #
+        # if que_return[0]:
+        #     self.camera = que_return[1]
+        #     self.WarmUpBlur.place_forget()
+        #     self.ImageIntr.place_forget()
+        #     self.CamButtonBlur.place_forget()
+        #     self.Thread_camera_check_connection.start()
+        #
+        #     self.ImageCam.configure(image=ctk.CTkImage(light_image=Image.open('Images/camera_light_green.png'),
+        #                                                dark_image=Image.open('Images/camera_light_green.png'),
+        #                                                size=(100, 100)))
+        #
+        #     self.CamIPEntry.configure(fg_color='#2DFE54')
+        #     self.CamPortEntry.configure(fg_color='#2DFE54')
+        #     self.CameraButton.configure(fg_color='#2DFE54')
+        #     self.CameraButton.configure(text="Camera Connected!")
+        #     self.CamIPEntry.configure(fg_color='#2DFE54')
+        #     self.CamPortEntry.configure(fg_color='#2DFE54')
 
 
     def thread_connect_camera(self):
+        pass
         """
         The deque class can be used for returning values
         The deque class is thread safe and is iterable
         A deque object does not block, if the maxsize has been reached.
         In this case the last or first element is dropped from the list.
         """
-        que_cam = deque()
-        try:
-            if not(self.CamIPEntry.get() and self.CamPortEntry.get()):
-                question = messagebox.askyesno("Continue?", "There was no IP or Port input. Is the camera\n"
-                                                 "in the same network as the PC?")
-                if question == 'yes':
-                    self.connect_to_camera(que_cam)
-
-            if self.CamIPEntry.get():
-                cam_ip = self.CamIPEntry.get()
-                with open('cam_config.txt', 'a') as file:
-                    file.write(f'Camera IP = {cam_ip}\n')
-            else:
-                try:
-                    with open('cam_config.txt') as file:
-                        for line in file:
-                            if line.startswith('Camera IP ='):
-                                cam_ip = line.split('=')[1].strip()
-                                break
-                        if not cam_ip:
-                            messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
-                                                          'Input IP')
-
-                except Exception as exceptionmsg:
-                    logging.error(str(exceptionmsg))
-                    cam_ip = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
-
-            if self.CamPortEntry.get():
-                cam_port = self.CamPortEntry.get()
-                with open('cam_config.txt', 'a') as file:
-                    file.write(f'Camera Port = {cam_port}\n')
-            else:
-                try:
-
-                    with open('cam_config.txt') as file:
-                        for line in file:
-                            if line.startswith('Camera Port ='):
-                                cam_port = line.split('=')[1].strip()
-                                self.CamPortEntry.insert('1.0', cam_port)
-                                break
-                        if not cam_port:
-                            messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
-                                                          'Input IP')
-
-                except Exception as exceptionmsg:
-                    logging.error(str(exceptionmsg))
-                    cam_port = None
-                    messagebox.showerror('Error', 'Check logging file for the error!')
-
-        except Exception as exceptionmsg:
-            print(f"Camera exception: {exceptionmsg}")
-            logging.error(f"Camera Exception: {exceptionmsg}")
+        # que_cam = deque()
+        # try:
+        #     if not(self.CamIPEntry.get() and self.CamPortEntry.get()):
+        #         question = messagebox.askyesno("Continue?", "There was no IP or Port input. Is the camera\n"
+        #                                          "in the same network as the PC?")
+        #         if question == 'yes':
+        #             self.connect_to_camera(que_cam)
+        #
+        #     if self.CamIPEntry.get():
+        #         cam_ip = self.CamIPEntry.get()
+        #         with open('cam_config.txt', 'a') as file:
+        #             file.write(f'Camera IP = {cam_ip}\n')
+        #     else:
+        #         try:
+        #             with open('cam_config.txt') as file:
+        #                 for line in file:
+        #                     if line.startswith('Camera IP ='):
+        #                         cam_ip = line.split('=')[1].strip()
+        #                         break
+        #                 if not cam_ip:
+        #                     messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
+        #                                                   'Input IP')
+        #
+        #         except Exception as exceptionmsg:
+        #             logging.error(str(exceptionmsg))
+        #             cam_ip = None
+        #             messagebox.showerror('Error', 'Check logging file for the error!')
+        #
+        #     if self.CamPortEntry.get():
+        #         cam_port = self.CamPortEntry.get()
+        #         with open('cam_config.txt', 'a') as file:
+        #             file.write(f'Camera Port = {cam_port}\n')
+        #     else:
+        #         try:
+        #
+        #             with open('cam_config.txt') as file:
+        #                 for line in file:
+        #                     if line.startswith('Camera Port ='):
+        #                         cam_port = line.split('=')[1].strip()
+        #                         self.CamPortEntry.insert('1.0', cam_port)
+        #                         break
+        #                 if not cam_port:
+        #                     messagebox.showerror('Error', 'Camera IP not found in the config file.\n'
+        #                                                   'Input IP')
+        #
+        #         except Exception as exceptionmsg:
+        #             logging.error(str(exceptionmsg))
+        #             cam_port = None
+        #             messagebox.showerror('Error', 'Check logging file for the error!')
+        #
+        # except Exception as exceptionmsg:
+        #     print(f"Camera exception: {exceptionmsg}")
+        #     logging.error(f"Camera Exception: {exceptionmsg}")
 
     def thread_connect_robot(self):
 
@@ -658,43 +656,44 @@ class App(ctk.CTk):
             self.Coords.Entry6.insert('1.0', p)
 
             if self.ManualCalib_button.check_var_manual.get() == 1:
-                if self.current_pose_id <= 20:
-                    try:
-                        matrix = functions_for_calibration.create_4x4_matrix(float(x),
-                                                                             float(y),
-                                                                             float(z),
-                                                                             float(w),
-                                                                             float(r),
-                                                                             float(p))
-
-                        matrix_string = functions_for_calibration.matrix_to_string(matrix)
-
-                        elements = matrix_string.split(maxsplit=15)
-                        data = np.array(elements, dtype=np.float64).reshape((4, 4))
-                        robot_pose = zivid.calibration.Pose(data)
-                        print(f"The following pose was entered:\n{robot_pose}")
-
-                        with open("PosesManual.txt", 'a') as file:
-                            file.write(f"Pose with index {self.current_pose_id}: {x}, {y}, {z}, {r}, {p}, {w}")
-
-                        frame = _assisted_capture(self.camera, self.current_pose_id)
-
-                        detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
-
-                        if detection_result.valid():
-                            print("Calibration board detected")
-                            self.handeye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
-                            self.current_pose_id += 1
-                        else:
-                            messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
-                                                                            " board, ensure that the entire board is "
-                                                                            "in the view of the camera")
-                    except Exception as exceptionmsg:
-                        messagebox.showinfo('Error', "Failed to add pose")
-
-                if self.current_pose_id == 20:
-                    messagebox.showinfo("Enought Poses", "You have enough poses and pictures\n"
-                                                         "You can start the calibration")
+                pass
+                # if self.current_pose_id <= 20:
+                #     try:
+                #         matrix = functions_for_calibration.create_4x4_matrix(float(x),
+                #                                                              float(y),
+                #                                                              float(z),
+                #                                                              float(w),
+                #                                                              float(r),
+                #                                                              float(p))
+                #
+                #         matrix_string = functions_for_calibration.matrix_to_string(matrix)
+                #
+                #         elements = matrix_string.split(maxsplit=15)
+                #         data = np.array(elements, dtype=np.float64).reshape((4, 4))
+                #         robot_pose = zivid.calibration.Pose(data)
+                #         print(f"The following pose was entered:\n{robot_pose}")
+                #
+                #         with open("PosesManual.txt", 'a') as file:
+                #             file.write(f"Pose with index {self.current_pose_id}: {x}, {y}, {z}, {r}, {p}, {w}")
+                #
+                #         frame = _assisted_capture(self.camera, self.current_pose_id)
+                #
+                #         detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
+                #
+                #         if detection_result.valid():
+                #             print("Calibration board detected")
+                #             self.handeye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
+                #             self.current_pose_id += 1
+                #         else:
+                #             messagebox.showinfo('Not that bad of an Error', "Failed to detect calibration"
+                #                                                             " board, ensure that the entire board is "
+                #                                                             "in the view of the camera")
+                #     except Exception as exceptionmsg:
+                #         messagebox.showinfo('Error', "Failed to add pose")
+                #
+                # if self.current_pose_id == 20:
+                #     messagebox.showinfo("Enought Poses", "You have enough poses and pictures\n"
+                #                                          "You can start the calibration")
 
                     # calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
                     # transform = calibration_result.transform()
@@ -711,25 +710,25 @@ class App(ctk.CTk):
         except Exception as exceptionmsg:
             messagebox.showerror('Error', f'{str(exceptionmsg)}')
 
-    def warm_up_function(self):
-        try:
-            warmup.warmup(self.camera)
-            messagebox.showinfo('Completed', "Camera Warm Up is completed!\n"
-                                             "Your camera is ready for use.")
+    # def warm_up_function(self):
+    #     try:
+    #         warmup.warmup(self.camera)
+    #         messagebox.showinfo('Completed', "Camera Warm Up is completed!\n"
+    #                                          "Your camera is ready for use.")
+    #
+    #     except Exception as exceptionmsg:
+    #         logging.error(str(exceptionmsg))
+    #         messagebox.showerror('Error', 'Camera did not warm up!')
 
-        except Exception as exceptionmsg:
-            logging.error(str(exceptionmsg))
-            messagebox.showerror('Error', 'Camera did not warm up!')
-
-    def cam_intr(self):
-        try:
-            get_camera_intrinsics.camera_intr(self.camera)
-            messagebox.showinfo('Completed', "Camera Intrinsics are ready!\n"
-                                             "Check the files.")
-
-        except Exception as exceptionmsg:
-            logging.error(str(exceptionmsg))
-            messagebox.showerror('Error', 'Could not get Intrinsics')
+    # def cam_intr(self):
+    #     try:
+    #         get_camera_intrinsics.camera_intr(self.camera)
+    #         messagebox.showinfo('Completed', "Camera Intrinsics are ready!\n"
+    #                                          "Check the files.")
+    #
+    #     except Exception as exceptionmsg:
+    #         logging.error(str(exceptionmsg))
+    #         messagebox.showerror('Error', 'Could not get Intrinsics')
 
 
     def get_currJpose(self):
@@ -767,55 +766,56 @@ class App(ctk.CTk):
             self.manual_calibration()
 
     def automatic_calibration(self):
-        try:
-            # Sending the robot to the desired position
-            self.move_robot()
-
-            matrix = functions_for_calibration.create_4x4_matrix(self.auto_calib_pose_dict[self.current_pose_id][0],
-                                                                 self.auto_calib_pose_dict[self.current_pose_id][1],
-                                                                 self.auto_calib_pose_dict[self.current_pose_id][2],
-                                                                 self.auto_calib_pose_dict[self.current_pose_id][3],
-                                                                 self.auto_calib_pose_dict[self.current_pose_id][4],
-                                                                 self.auto_calib_pose_dict[self.current_pose_id][5])
-
-            matrix_string = functions_for_calibration.matrix_to_string(matrix)
-
-            elements = matrix_string.split(maxsplit=15)
-            data = np.array(elements, dtype=np.float64).reshape((4, 4))
-            robot_pose = zivid.calibration.Pose(data)
-            print(f"The following pose was entered:\n{robot_pose}")
-
-            with open("PosesAutomatic.txt", 'a') as file:
-                file.write(f"Pose with index {self.current_pose_id}: {x}, {y}, {z}, {r}, {p}, {w}")
-
-            frame = _assisted_capture(self.camera, self.current_pose_id)
-
-            print("Detecting checkerboard in point cloud")
-            detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
-
-            if detection_result.valid():
-                print("Calibration board detected")
-                self.handeye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
-                self.current_pose_id += 1
-            else:
-                print(
-                    "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
-                )
-
-        except ValueError as ex:
-            logging.error(f"{ex}")
-
-        calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
-        transform = calibration_result.transform()
-        transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixAutomated.yaml")
-        save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
-
-        if calibration_result.valid():
-            messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
-            os.system(f"notepad.exe {transform_file_path}")
-        else:
-            print("Hand-Eye calibration FAILED")
-            messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+        pass
+        # try:
+        #     # Sending the robot to the desired position
+        #     self.move_robot()
+        #
+        #     matrix = functions_for_calibration.create_4x4_matrix(self.auto_calib_pose_dict[self.current_pose_id][0],
+        #                                                          self.auto_calib_pose_dict[self.current_pose_id][1],
+        #                                                          self.auto_calib_pose_dict[self.current_pose_id][2],
+        #                                                          self.auto_calib_pose_dict[self.current_pose_id][3],
+        #                                                          self.auto_calib_pose_dict[self.current_pose_id][4],
+        #                                                          self.auto_calib_pose_dict[self.current_pose_id][5])
+        #
+        #     matrix_string = functions_for_calibration.matrix_to_string(matrix)
+        #
+        #     elements = matrix_string.split(maxsplit=15)
+        #     data = np.array(elements, dtype=np.float64).reshape((4, 4))
+        #     robot_pose = zivid.calibration.Pose(data)
+        #     print(f"The following pose was entered:\n{robot_pose}")
+        #
+        #     with open("PosesAutomatic.txt", 'a') as file:
+        #         file.write(f"Pose with index {self.current_pose_id}: {x}, {y}, {z}, {r}, {p}, {w}")
+        #
+        #     frame = _assisted_capture(self.camera, self.current_pose_id)
+        #
+        #     print("Detecting checkerboard in point cloud")
+        #     detection_result = zivid.calibration.detect_feature_points(frame.point_cloud())
+        #
+        #     if detection_result.valid():
+        #         print("Calibration board detected")
+        #         self.handeye_input.append(zivid.calibration.HandEyeInput(robot_pose, detection_result))
+        #         self.current_pose_id += 1
+        #     else:
+        #         print(
+        #             "Failed to detect calibration board, ensure that the entire board is in the view of the camera"
+        #         )
+        #
+        # except ValueError as ex:
+        #     logging.error(f"{ex}")
+        #
+        # calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
+        # transform = calibration_result.transform()
+        # transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixAutomated.yaml")
+        # save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
+        #
+        # if calibration_result.valid():
+        #     messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+        #     os.system(f"notepad.exe {transform_file_path}")
+        # else:
+        #     print("Hand-Eye calibration FAILED")
+        #     messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
 
     def move_robot(self):
         try:
@@ -844,27 +844,27 @@ class App(ctk.CTk):
             messagebox.showerror("Error", "There is a problem with moving your robot!")
 
     def manual_calibration(self):
-        try:
-            calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
-            transform = calibration_result.transform()
-            transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
-            save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
-
-            if calibration_result.valid():
-                messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
-                os.system(f"notepad.exe {transform_file_path}")
-            else:
-                print("Hand-Eye calibration FAILED")
-                messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
-
-        except Exception as exceptionmsg:
-            logging.error(f"{str(exceptionmsg)}")
-            messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+        pass
+        # try:
+        #     calibration_result = _perform_calibration(self.handeye_input, self.calibration_type)
+        #     transform = calibration_result.transform()
+        #     transform_file_path = Path(Path(__file__).parent / "CalibrationMatrixManual.yaml")
+        #     save_load_matrix.assert_affine_matrix_and_save(transform, transform_file_path)
+        #
+        #     if calibration_result.valid():
+        #         messagebox.showinfo("Hand-Eye calibration OK", f"Result:\n{calibration_result}")
+        #         os.system(f"notepad.exe {transform_file_path}")
+        #     else:
+        #         print("Hand-Eye calibration FAILED")
+        #         messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
+        #
+        # except Exception as exceptionmsg:
+        #     logging.error(f"{str(exceptionmsg)}")
+        #     messagebox.showinfo('Error!', "Hand-Eye calibration FAILED")
 
 
 if __name__ == '__main__':
-    def run_window():
-        splash_screen.destroy()
+
 
     ctk.set_appearance_mode('dark')
     ctk.set_default_color_theme('blue')
@@ -876,9 +876,6 @@ if __name__ == '__main__':
     """
     try:
         logging.basicConfig(filename="logging_file.log", level=logging.INFO)
-        splash_screen = SplashScreen()
-        splash_screen.after(3000, run_window)
-        splash_screen.mainloop()
 
         app = App()
         app.mainloop()
